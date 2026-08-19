@@ -1,0 +1,166 @@
+:root {
+    --bg: #0b0f14;
+    --panel: #121a22;
+    --panel-2: #0f161d;
+    --line: #1f2a35;
+    --text: #e6edf3;
+    --muted: #8b98a5;
+    --accent: #3ddc97;
+    --accent-dim: #1c6b4c;
+    --chip: #16222c;
+    --radius: 14px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Top bar */
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #0e151c, var(--bg));
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-name { font-weight: 700; letter-spacing: -0.01em; font-size: 18px; }
+.brand-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+/* Radar glyph: concentric rings with a sweeping blip */
+.radar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background:
+        radial-gradient(circle, transparent 2px, var(--accent-dim) 2.5px, transparent 3px) center/100% 100% no-repeat,
+        radial-gradient(circle, transparent 6px, var(--accent-dim) 6.5px, transparent 7px) center/100% 100% no-repeat;
+    border: 1.5px solid var(--accent-dim);
+    position: relative;
+}
+.radar::after {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(61, 220, 151, 0.55) 40deg, transparent 70deg);
+    animation: sweep 3.2s linear infinite;
+}
+@keyframes sweep { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .radar::after { animation: none; } }
+
+.nav a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    padding: 6px 10px;
+    border-radius: 8px;
+}
+.nav a.active, .nav a:hover { color: var(--text); background: var(--panel); }
+
+/* Layout */
+.container { max-width: 1040px; margin: 0 auto; padding: 36px 28px 64px; }
+
+.page-head { margin-bottom: 22px; }
+.page-head h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.02em; }
+.lede { margin: 0; color: var(--muted); }
+
+/* Card */
+.card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+/* Table */
+.kw-table { width: 100%; border-collapse: collapse; }
+.kw-table thead th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 14px 18px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+}
+.kw-table tbody td { padding: 14px 18px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.kw-table tbody tr:last-child td { border-bottom: none; }
+.kw-table tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+.term { font-weight: 600; }
+.country { font-family: var(--mono); color: var(--muted); }
+.muted { color: var(--muted); }
+
+.chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: #bfe9d5;
+    background: var(--chip);
+    border: 1px solid var(--line);
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.col-pop { width: 260px; }
+.col-when { width: 150px; white-space: nowrap; }
+
+/* Popularity bar */
+.bar {
+    position: relative;
+    height: 22px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+    border-radius: 999px 0 0 999px;
+    min-width: 3px;
+}
+.bar-val {
+    position: absolute;
+    top: 0; right: 10px;
+    line-height: 22px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+}
+
+/* Empty state */
+.empty { padding: 48px 24px; text-align: center; }
+.empty-title { margin: 0 0 6px; font-weight: 600; }
+
+.footer {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 20px 28px 40px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 12px;
+}

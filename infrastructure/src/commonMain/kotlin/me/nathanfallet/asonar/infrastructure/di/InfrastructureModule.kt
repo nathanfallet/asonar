@@ -32,8 +32,9 @@ val Application.infrastructureModule: Module
         single {
             DatabaseConfig(
                 protocol = environment.config.property("database.protocol").getString(),
-                host = environment.config.property("database.host").getString(),
                 name = environment.config.property("database.name").getString(),
+                directory = environment.config.property("database.directory").getString(),
+                host = environment.config.property("database.host").getString(),
                 user = environment.config.property("database.user").getString(),
                 password = environment.config.property("database.password").getString(),
             )

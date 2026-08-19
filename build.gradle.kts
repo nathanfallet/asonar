@@ -14,6 +14,8 @@ allprojects {
 }
 
 dependencies {
+    kover(projects.api)
+    kover(projects.client)
     kover(projects.domain)
     kover(projects.infrastructure)
     kover(projects.presentation)

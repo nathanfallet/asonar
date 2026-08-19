@@ -4,6 +4,8 @@ import me.nathanfallet.asonar.domain.usecases.apps.GetOrCreateAppUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.GetOrCreateAppUseCaseImpl
 import me.nathanfallet.asonar.domain.usecases.keywords.GetOrCreateKeywordUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.GetOrCreateKeywordUseCaseImpl
+import me.nathanfallet.asonar.domain.usecases.keywords.ListKeywordOverviewsUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.ListKeywordOverviewsUseCaseImpl
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCaseImpl
 import org.koin.core.module.Module
@@ -16,5 +18,6 @@ import org.koin.dsl.module
 val domainModule: Module = module {
     single<GetOrCreateAppUseCase> { GetOrCreateAppUseCaseImpl(get()) }
     single<GetOrCreateKeywordUseCase> { GetOrCreateKeywordUseCaseImpl(get()) }
+    single<ListKeywordOverviewsUseCase> { ListKeywordOverviewsUseCaseImpl(get(), get()) }
     single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get()) }
 }

@@ -18,31 +18,19 @@ kotlin {
     sourceSets {
         all {
             languageSettings.apply {
-                optIn("kotlin.uuid.ExperimentalUuidApi")
                 optIn("kotlin.time.ExperimentalTime")
             }
         }
         val commonMain by getting {
             dependencies {
-                api(projects.api)
-                api(projects.domain)
-
-                api(libs.koin.ktor)
-                api(libs.ktor.server.core)
-                api(libs.ktor.server.resources)
-                api(libs.ktor.server.content.negotiation)
-                api(libs.ktor.serialization.kotlinx.json)
-                api(libs.ktor.server.status.pages)
-                api(libs.ktor.server.cors)
-                api(libs.ktor.server.call.logging)
-                api(libs.ktor.server.freemarker)
-                api(libs.mcp.server)
+                api(libs.kotlinx.serialization.json)
+                api(libs.kotlinx.datetime)
+                api(libs.ktor.resources)
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation(libs.bundles.ktor.server.tests)
             }
         }
     }

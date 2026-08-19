@@ -2,12 +2,17 @@ package me.nathanfallet.asonar.presentation.config
 
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.http.content.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.resources.*
 import io.ktor.server.routing.*
 import me.nathanfallet.asonar.presentation.routes.health.healthRoutes
+import me.nathanfallet.asonar.presentation.routes.keywords.keywordsRoutes
+import me.nathanfallet.asonar.presentation.routes.web.webRoutes
 import org.koin.ktor.ext.get
 
 fun Application.configureRouting() {
+    install(Resources)
     install(IgnoreTrailingSlash)
     install(CORS) {
         allowMethod(HttpMethod.Options)
@@ -22,6 +27,11 @@ fun Application.configureRouting() {
         // Probe, which must answer without any authentication
         healthRoutes(get())
 
-        // Keyword-tracking API routes go here as we build them.
+        // JSON API
+        keywordsRoutes(get())
+
+        // Server-rendered web UI + its assets
+        webRoutes(get())
+        staticResources("", "static")
     }
 }

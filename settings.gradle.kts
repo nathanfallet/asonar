@@ -18,6 +18,8 @@ dependencyResolutionManagement {
     }
 }
 
+include(":api")
+include(":client")
 include(":domain")
 include(":infrastructure")
 include(":presentation")
