@@ -1,0 +1,33 @@
+.gradle
+.kotlin
+.idea
+.fleet
+build/
+!gradle/wrapper/gradle-wrapper.jar
+local.properties
+
+### Scraping data — kdriver browser profile + fetched payloads, never committed
+data/
+*.session
+
+### IntelliJ IDEA ###
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+out/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Keys / secrets
+*.pem
+*.p8
+*.env
+secrets.*
