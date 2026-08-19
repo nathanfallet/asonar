@@ -1,34 +1,113 @@
 package me.nathanfallet.asonar.presentation.routes.web
 
+import io.ktor.http.*
 import io.ktor.server.freemarker.*
+import io.ktor.server.plugins.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import me.nathanfallet.asonar.domain.models.application.Pagination
+import me.nathanfallet.asonar.domain.models.keywords.KeywordDetail
+import me.nathanfallet.asonar.domain.models.keywords.KeywordOverview
+import me.nathanfallet.asonar.domain.models.keywords.KeywordPayload
+import me.nathanfallet.asonar.domain.usecases.keywords.GetKeywordDetailUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.GetOrCreateKeywordUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.ListKeywordOverviewsUseCase
+import me.nathanfallet.asonar.presentation.extensions.parseStore
 import me.nathanfallet.asonar.presentation.views.DashboardView
+import me.nathanfallet.asonar.presentation.views.KeywordDetailView
 import me.nathanfallet.asonar.presentation.views.KeywordRowView
 import me.nathanfallet.asonar.presentation.views.LayoutView
+import me.nathanfallet.asonar.presentation.views.McpGuideView
+import me.nathanfallet.asonar.presentation.views.RankRowView
+import me.nathanfallet.asonar.presentation.views.TopAppRowView
+import kotlin.time.Instant
 
-/** The server-rendered web UI. For now: the dashboard of tracked keywords. */
-fun Route.webRoutes(listKeywordOverviewsUseCase: ListKeywordOverviewsUseCase) {
+/** Use cases the web UI needs. */
+data class WebRoutesDependencies(
+    val listKeywordOverviewsUseCase: ListKeywordOverviewsUseCase,
+    val getKeywordDetailUseCase: GetKeywordDetailUseCase,
+    val getOrCreateKeywordUseCase: GetOrCreateKeywordUseCase,
+)
+
+/** The server-rendered web UI: dashboard, add-keyword form, keyword detail, and the MCP guide. */
+fun Route.webRoutes(dependencies: WebRoutesDependencies) = with(dependencies) {
     get("/") {
-        val rows = listKeywordOverviewsUseCase(Pagination(limit = 100)).map { overview ->
-            KeywordRowView(
-                term = overview.keyword.term,
-                store = overview.keyword.store.name,
-                country = overview.keyword.country,
-                popularityLabel = overview.latestPopularity?.popularity?.toString() ?: "—",
-                popularityValue = overview.latestPopularity?.popularity ?: 0,
-                hasPopularity = overview.latestPopularity != null,
-                capturedAt = overview.latestPopularity?.capturedAt?.toString()
-                    ?.take(16)?.replace("T", " ") ?: "—",
-            )
-        }
+        val rows = listKeywordOverviewsUseCase(Pagination(limit = 100)).map { it.toRow() }
         call.respond(
             FreeMarkerContent(
                 "dashboard.ftl",
-                mapOf("view" to DashboardView(LayoutView("Dashboard"), rows)),
+                mapOf("view" to DashboardView(LayoutView("Dashboard", "dashboard"), rows)),
+            )
+        )
+    }
+    post("/keywords") {
+        val params = call.receiveParameters()
+        val term = params["term"]?.takeIf { it.isNotBlank() }
+        val store = params["store"]?.let { parseStore(it) }
+        val country = params["country"]?.takeIf { it.isNotBlank() }
+        if (term != null && store != null && country != null) {
+            getOrCreateKeywordUseCase(KeywordPayload(term, store, country))
+        }
+        call.respondRedirect("/")
+    }
+    get("/keywords/{id}") {
+        val detail = call.parameters["id"]?.toLongOrNull()?.let { getKeywordDetailUseCase(it) }
+        if (detail == null) {
+            call.respond(HttpStatusCode.NotFound, "Keyword not found")
+            return@get
+        }
+        call.respond(FreeMarkerContent("keyword.ftl", mapOf("view" to detail.toDetailView())))
+    }
+    get("/mcp-guide") {
+        val origin = call.request.origin
+        val mcpUrl = "${origin.scheme}://${origin.serverHost}:${origin.serverPort}/mcp"
+        call.respond(
+            FreeMarkerContent(
+                "mcp.ftl",
+                mapOf(
+                    "view" to McpGuideView(
+                        layout = LayoutView("MCP", "mcp"),
+                        mcpUrl = mcpUrl,
+                        claudeCodeCommand = "claude mcp add --transport http asonar $mcpUrl",
+                    )
+                ),
             )
         )
     }
 }
+
+private fun KeywordOverview.toRow() = KeywordRowView(
+    id = keyword.id,
+    term = keyword.term,
+    store = keyword.store.name,
+    country = keyword.country,
+    popularityLabel = latestPopularity?.popularity?.toString() ?: "—",
+    popularityValue = latestPopularity?.popularity ?: 0,
+    hasPopularity = latestPopularity != null,
+    capturedAt = latestPopularity?.capturedAt.formatted(),
+)
+
+private fun KeywordDetail.toDetailView() = KeywordDetailView(
+    layout = LayoutView(keyword.term, "dashboard"),
+    id = keyword.id,
+    term = keyword.term,
+    store = keyword.store.name,
+    country = keyword.country,
+    popularityLabel = latestPopularity?.popularity?.toString() ?: "—",
+    popularityValue = latestPopularity?.popularity ?: 0,
+    hasPopularity = latestPopularity != null,
+    capturedAt = latestPopularity?.capturedAt.formatted(),
+    topApps = topApps.map { TopAppRowView(it.position, it.appName, it.storeAppId) },
+    ranks = ranks.map {
+        RankRowView(
+            appName = it.app.name,
+            rankLabel = it.rank.rank?.let { r -> "#$r" } ?: "—",
+            totalResults = it.rank.totalResults?.toString() ?: "—",
+            capturedAt = it.rank.capturedAt.formatted(),
+        )
+    },
+)
+
+private fun Instant?.formatted(): String =
+    this?.toString()?.take(16)?.replace("T", " ") ?: "—"

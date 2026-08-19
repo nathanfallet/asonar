@@ -8,6 +8,7 @@ import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.serialization.kotlinx.json.*
 import me.nathanfallet.asonar.api.Serialization
+import me.nathanfallet.asonar.client.api.apps.AppsApiClientImpl
 import me.nathanfallet.asonar.client.api.keywords.KeywordsApiClientImpl
 
 /**
@@ -35,6 +36,7 @@ class ApiClientImpl(
         }
     }
 
+    override val apps = AppsApiClientImpl(client)
     override val keywords = KeywordsApiClientImpl(client)
 
 }

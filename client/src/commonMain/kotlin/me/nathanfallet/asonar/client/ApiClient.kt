@@ -1,5 +1,6 @@
 package me.nathanfallet.asonar.client
 
+import me.nathanfallet.asonar.client.api.apps.AppsApiClient
 import me.nathanfallet.asonar.client.api.keywords.KeywordsApiClient
 
 /**
@@ -7,6 +8,9 @@ import me.nathanfallet.asonar.client.api.keywords.KeywordsApiClient
  * `client.keywords.getAll()`. Construct it with [ApiClientImpl] and a base URL.
  */
 interface ApiClient {
+
+    /** The apps endpoints. */
+    val apps: AppsApiClient
 
     /** The keywords endpoints. */
     val keywords: KeywordsApiClient

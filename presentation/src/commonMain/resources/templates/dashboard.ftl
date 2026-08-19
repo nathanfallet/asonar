@@ -5,6 +5,16 @@
     <p class="lede">Indice de popularité (0–100) par mot-clé, dernière mesure relevée.</p>
 </section>
 
+<form class="add-form" method="post" action="/keywords">
+    <input class="in in-term" type="text" name="term" placeholder="Ajouter un mot-clé (ex. tdah repas)" required>
+    <select class="in in-store" name="store">
+        <option value="APP_STORE">App Store</option>
+        <option value="PLAY_STORE">Play Store</option>
+    </select>
+    <input class="in in-country" type="text" name="country" value="FR" maxlength="2" aria-label="Pays" required>
+    <button class="btn" type="submit">Suivre</button>
+</form>
+
 <div class="card">
     <#if (view.keywords?size > 0)>
     <table class="kw-table">
@@ -20,7 +30,7 @@
         <tbody>
         <#list view.keywords as k>
         <tr>
-            <td class="term">${k.term}</td>
+            <td class="term"><a class="row-link" href="/keywords/${k.id}">${k.term}</a></td>
             <td><span class="chip">${k.store}</span></td>
             <td class="country">${k.country}</td>
             <td class="col-pop">
@@ -41,7 +51,7 @@
     <#else>
     <div class="empty">
         <p class="empty-title">Aucun mot-clé suivi</p>
-        <p class="muted">Ils apparaîtront ici dès qu'un run en aura enregistré.</p>
+        <p class="muted">Ajoute-en un ci-dessus. Les données de popularité arriveront quand le fetch tournera.</p>
     </div>
     </#if>
 </div>

@@ -9,13 +9,14 @@
 </head>
 <body>
 <header class="topbar">
-    <div class="brand">
+    <a class="brand" href="/">
         <span class="radar" aria-hidden="true"></span>
         <span class="brand-name">asonar</span>
         <span class="brand-tag">ASO radar</span>
-    </div>
+    </a>
     <nav class="nav">
-        <a href="/" class="active">Dashboard</a>
+        <a href="/"<#if layout.activeNav == "dashboard"> class="active"</#if>>Dashboard</a>
+        <a href="/mcp-guide" class="nav-cta<#if layout.activeNav == "mcp"> active</#if>">Connecter à Claude</a>
     </nav>
 </header>
 <main class="container">
