@@ -1,6 +1,11 @@
 package me.nathanfallet.asonar.infrastructure.di
 
 import io.ktor.server.application.*
+import me.nathanfallet.asonar.domain.repositories.AppsRepository
+import me.nathanfallet.asonar.domain.repositories.KeywordsRepository
+import me.nathanfallet.asonar.domain.repositories.PopularitySnapshotsRepository
+import me.nathanfallet.asonar.domain.repositories.RankSnapshotsRepository
+import me.nathanfallet.asonar.domain.repositories.TopAppSnapshotsRepository
 import me.nathanfallet.asonar.domain.services.HealthService
 import me.nathanfallet.asonar.infrastructure.database.DatabaseConfig
 import me.nathanfallet.asonar.infrastructure.database.DatabaseFactory
@@ -8,6 +13,11 @@ import me.nathanfallet.asonar.infrastructure.database.H2DatabaseFactory
 import me.nathanfallet.asonar.infrastructure.database.MySQLDatabaseFactory
 import me.nathanfallet.asonar.infrastructure.database.TransactionManager
 import me.nathanfallet.asonar.infrastructure.database.TransactionManagerImpl
+import me.nathanfallet.asonar.infrastructure.database.repositories.AppsDatabaseRepository
+import me.nathanfallet.asonar.infrastructure.database.repositories.KeywordsDatabaseRepository
+import me.nathanfallet.asonar.infrastructure.database.repositories.PopularitySnapshotsDatabaseRepository
+import me.nathanfallet.asonar.infrastructure.database.repositories.RankSnapshotsDatabaseRepository
+import me.nathanfallet.asonar.infrastructure.database.repositories.TopAppSnapshotsDatabaseRepository
 import me.nathanfallet.asonar.infrastructure.health.DatabaseHealthService
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -40,6 +50,10 @@ val Application.infrastructureModule: Module
 
         single<HealthService> { DatabaseHealthService(get()) }
 
-        // Repositories go here as we add the keyword-tracking tables, e.g.
-        // single<KeywordsRepository> { KeywordsDatabaseRepository(get()) }
+        // Repositories
+        single<AppsRepository> { AppsDatabaseRepository(get()) }
+        single<KeywordsRepository> { KeywordsDatabaseRepository(get()) }
+        single<PopularitySnapshotsRepository> { PopularitySnapshotsDatabaseRepository(get()) }
+        single<RankSnapshotsRepository> { RankSnapshotsDatabaseRepository(get()) }
+        single<TopAppSnapshotsRepository> { TopAppSnapshotsDatabaseRepository(get()) }
     }
