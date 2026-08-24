@@ -11,6 +11,7 @@ data class DatabaseConfig(
     val name: String,
     val directory: String = "",
     val host: String = "localhost",
+    val port: Int = 3306,
     val user: String = "root",
     val password: String = "",
     val maximumPoolSize: Int = 10,

@@ -14,6 +14,7 @@ koin = "4.1.0"
 logback = "1.5.20"
 mysql = "8.0.33"
 mcp = "0.14.0"
+kourier = "0.4.7"
 
 [plugins]
 jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -59,6 +60,9 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 
 # MCP (Model Context Protocol) — Kotlin SDK server
 mcp-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref = "mcp" }
+
+# Kourier — RabbitMQ / AMQP client (robust = auto-reconnect)
+kourier-client-robust = { module = "dev.kourier:amqp-client-robust", version.ref = "kourier" }
 
 # Koin
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }

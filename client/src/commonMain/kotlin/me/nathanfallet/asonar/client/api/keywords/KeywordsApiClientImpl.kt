@@ -35,6 +35,10 @@ class KeywordsApiClientImpl(
         client.delete(KeywordsApi.Id(id = id))
     }
 
+    override suspend fun refresh(id: Long) {
+        client.post(KeywordsApi.Id.Refresh(KeywordsApi.Id(id = id)))
+    }
+
     override suspend fun popularityHistory(id: Long): PopularitySnapshotsResponse =
         client.get(KeywordsApi.Id.Popularity(KeywordsApi.Id(id = id))).body()
 

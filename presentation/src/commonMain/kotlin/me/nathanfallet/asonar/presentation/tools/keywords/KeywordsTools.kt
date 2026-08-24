@@ -147,4 +147,20 @@ fun Server.keywordsTools(dependencies: KeywordsRoutesDependencies) = with(depend
         val history = listRankHistoryUseCase(keywordId, appId, Pagination(limit = 100))
         CallToolResult(content = listOf(TextContent(Serialization.json.encodeToString(history.map { it.toRankSnapshotResponse() }))))
     }
+
+    addTool(
+        name = "refresh_keyword",
+        description = "Queue a fetch of a keyword's popularity/rank data. Returns immediately; the fetch runs asynchronously.",
+        inputSchema = ToolSchema(
+            properties = buildJsonObject {
+                putJsonObject("keywordId") { put("type", "integer"); put("description", "The id of the keyword to refresh.") }
+            },
+            required = listOf("keywordId"),
+        ),
+    ) { request ->
+        val id = request.arguments?.get("keywordId")?.jsonPrimitive?.longOrNull
+            ?: return@addTool toolError("A valid integer \"keywordId\" is required.")
+        if (refreshKeywordUseCase(id)) CallToolResult(content = listOf(TextContent("Fetch queued for keyword $id.")))
+        else toolError("No keyword found with id $id.")
+    }
 }

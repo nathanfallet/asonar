@@ -3,6 +3,7 @@ package me.nathanfallet.asonar
 import io.ktor.server.application.*
 import io.ktor.server.netty.*
 import me.nathanfallet.asonar.domain.di.domainModule
+import me.nathanfallet.asonar.infrastructure.config.configureMessageBroker
 import me.nathanfallet.asonar.infrastructure.di.infrastructureModule
 import me.nathanfallet.asonar.presentation.config.configureErrorHandling
 import me.nathanfallet.asonar.presentation.config.configureMcp
@@ -29,4 +30,5 @@ fun Application.module() {
     configureTemplating()
     configureRouting()
     configureMcp()
+    configureMessageBroker()
 }

@@ -24,11 +24,14 @@ kotlin {
         }
         val commonMain by getting {
             dependencies {
+                api(projects.api)
                 api(projects.domain)
 
                 api(libs.bundles.exposed)
                 api(libs.hikari)
                 api(libs.mysql)
+
+                api(libs.kourier.client.robust)
 
                 api(libs.koin.ktor)
                 api(libs.ktor.server.core)

@@ -13,6 +13,7 @@ import me.nathanfallet.asonar.domain.models.keywords.KeywordPayload
 import me.nathanfallet.asonar.domain.usecases.keywords.GetKeywordDetailUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.GetOrCreateKeywordUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.ListKeywordOverviewsUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.RefreshKeywordUseCase
 import me.nathanfallet.asonar.presentation.extensions.parseStore
 import me.nathanfallet.asonar.presentation.views.DashboardView
 import me.nathanfallet.asonar.presentation.views.KeywordDetailView
@@ -28,6 +29,7 @@ data class WebRoutesDependencies(
     val listKeywordOverviewsUseCase: ListKeywordOverviewsUseCase,
     val getKeywordDetailUseCase: GetKeywordDetailUseCase,
     val getOrCreateKeywordUseCase: GetOrCreateKeywordUseCase,
+    val refreshKeywordUseCase: RefreshKeywordUseCase,
 )
 
 /** The server-rendered web UI: dashboard, add-keyword form, keyword detail, and the MCP guide. */
@@ -58,6 +60,11 @@ fun Route.webRoutes(dependencies: WebRoutesDependencies) = with(dependencies) {
             return@get
         }
         call.respond(FreeMarkerContent("keyword.ftl", mapOf("view" to detail.toDetailView())))
+    }
+    post("/keywords/{id}/refresh") {
+        val id = call.parameters["id"]?.toLongOrNull()
+        if (id != null) refreshKeywordUseCase(id)
+        call.respondRedirect(if (id != null) "/keywords/$id" else "/")
     }
     get("/mcp-guide") {
         val origin = call.request.origin

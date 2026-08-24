@@ -1,0 +1,42 @@
+# Local dev infrastructure for asonar: a real MySQL database + RabbitMQ for the async fetch queue.
+# Bring it up before running the app:  docker compose up -d
+# RabbitMQ management UI: http://localhost:15672  (guest / guest)
+#
+# Standard ports — stop any other local stack (e.g. controlresell) using 3306/5672 first.
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: asonar-mysql
+    command: [ "mysqld", "--mysql-native-password=ON" ]
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "1"
+      MYSQL_DATABASE: asonar
+    ports:
+      - "3306:3306"
+    volumes:
+      - asonar-mysql:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: asonar-rabbitmq
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # management UI
+    volumes:
+      - asonar-rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  asonar-mysql:
+  asonar-rabbitmq:

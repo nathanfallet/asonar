@@ -23,6 +23,9 @@ interface KeywordsApiClient {
     /** Stops tracking a keyword. */
     suspend fun delete(id: Long)
 
+    /** Queues a fetch of the keyword's data (returns once accepted). */
+    suspend fun refresh(id: Long)
+
     /** Reads a keyword's popularity history. */
     suspend fun popularityHistory(id: Long): PopularitySnapshotsResponse
 

@@ -26,5 +26,9 @@ class KeywordsApi {
         /** The rank history of one of our apps on the keyword. */
         @Resource("ranks/{appId}")
         class Ranks(val parent: Id, val appId: Long)
+
+        /** POST here to queue a fetch of the keyword's data. */
+        @Resource("refresh")
+        class Refresh(val parent: Id)
     }
 }

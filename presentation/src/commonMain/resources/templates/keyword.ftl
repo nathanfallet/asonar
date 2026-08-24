@@ -8,6 +8,9 @@
         <span class="country">${view.country}</span>
         <#if view.hasPopularity>· Popularité <strong>${view.popularityLabel}</strong>/100 · mesuré ${view.capturedAt}</#if>
     </p>
+    <form class="head-actions" method="post" action="/keywords/${view.id}/refresh">
+        <button class="btn" type="submit">↻ Rafraîchir les données</button>
+    </form>
 </section>
 
 <div class="detail-grid">

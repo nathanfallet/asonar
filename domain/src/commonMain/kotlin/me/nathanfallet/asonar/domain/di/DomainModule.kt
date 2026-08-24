@@ -22,6 +22,8 @@ import me.nathanfallet.asonar.domain.usecases.keywords.ListPopularityHistoryUseC
 import me.nathanfallet.asonar.domain.usecases.keywords.ListPopularityHistoryUseCaseImpl
 import me.nathanfallet.asonar.domain.usecases.keywords.ListRankHistoryUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.ListRankHistoryUseCaseImpl
+import me.nathanfallet.asonar.domain.usecases.keywords.RefreshKeywordUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.RefreshKeywordUseCaseImpl
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCaseImpl
 import org.koin.core.module.Module
@@ -46,6 +48,7 @@ val domainModule: Module = module {
     single<ListPopularityHistoryUseCase> { ListPopularityHistoryUseCaseImpl(get()) }
     single<GetLatestTopAppsUseCase> { GetLatestTopAppsUseCaseImpl(get()) }
     single<ListRankHistoryUseCase> { ListRankHistoryUseCaseImpl(get()) }
+    single<RefreshKeywordUseCase> { RefreshKeywordUseCaseImpl(get(), get()) }
 
     // Runs — internal: written by the fetch pipeline, never exposed to the API/MCP/web.
     single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get()) }

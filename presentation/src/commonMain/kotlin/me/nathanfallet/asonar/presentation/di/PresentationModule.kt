@@ -12,6 +12,6 @@ import org.koin.dsl.module
  */
 val presentationModule: Module = module {
     single { AppsRoutesDependencies(get(), get(), get(), get()) }
-    single { KeywordsRoutesDependencies(get(), get(), get(), get(), get(), get(), get()) }
-    single { WebRoutesDependencies(get(), get(), get()) }
+    single { KeywordsRoutesDependencies(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { WebRoutesDependencies(get(), get(), get(), get()) }
 }

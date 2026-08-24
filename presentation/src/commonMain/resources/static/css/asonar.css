@@ -118,6 +118,7 @@ html, body {
 
 .row-link { color: var(--text); text-decoration: none; }
 .row-link:hover { color: var(--accent); }
+.head-actions { margin-top: 14px; }
 .back { color: var(--muted); text-decoration: none; font-size: 13px; display: inline-block; margin-bottom: 10px; }
 .back:hover { color: var(--text); }
 .page-head h1 strong, .lede strong { color: var(--text); }

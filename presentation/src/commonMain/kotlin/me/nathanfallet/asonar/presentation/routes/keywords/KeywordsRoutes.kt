@@ -19,6 +19,7 @@ import me.nathanfallet.asonar.domain.usecases.keywords.GetOrCreateKeywordUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.ListKeywordOverviewsUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.ListPopularityHistoryUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.ListRankHistoryUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.RefreshKeywordUseCase
 import me.nathanfallet.asonar.presentation.extensions.parseStore
 import me.nathanfallet.asonar.presentation.mappers.keywords.toKeywordDetailResponse
 import me.nathanfallet.asonar.presentation.mappers.keywords.toKeywordResponse
@@ -39,6 +40,7 @@ data class KeywordsRoutesDependencies(
     val listPopularityHistoryUseCase: ListPopularityHistoryUseCase,
     val getLatestTopAppsUseCase: GetLatestTopAppsUseCase,
     val listRankHistoryUseCase: ListRankHistoryUseCase,
+    val refreshKeywordUseCase: RefreshKeywordUseCase,
 )
 
 fun Route.keywordsRoutes(dependencies: KeywordsRoutesDependencies) = with(dependencies) {
@@ -72,5 +74,15 @@ fun Route.keywordsRoutes(dependencies: KeywordsRoutesDependencies) = with(depend
     get<KeywordsApi.Id.Ranks> { params ->
         val history = listRankHistoryUseCase(params.parent.id, params.appId, Pagination(limit = 100))
         call.respond(RankSnapshotsResponse(history.map { it.toRankSnapshotResponse() }))
+    }
+    // Explicit path (the no-body typed resource POST is awkward); the client still builds this URL
+    // from KeywordsApi.Id.Refresh, so the two stay in sync.
+    post("/api/keywords/{id}/refresh") {
+        val id = call.parameters["id"]?.toLongOrNull()
+        if (id != null && refreshKeywordUseCase(id)) {
+            call.respond(HttpStatusCode.Accepted, "Fetch queued for keyword $id")
+        } else {
+            call.respond(HttpStatusCode.NotFound, "Keyword $id not found")
+        }
     }
 }
