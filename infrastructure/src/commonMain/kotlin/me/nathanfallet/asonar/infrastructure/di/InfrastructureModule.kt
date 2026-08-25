@@ -7,15 +7,13 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import me.nathanfallet.asonar.api.Serialization
 import me.nathanfallet.asonar.domain.repositories.*
-import me.nathanfallet.asonar.domain.services.AppSearchSource
-import me.nathanfallet.asonar.domain.services.HealthService
-import me.nathanfallet.asonar.domain.services.KeywordFetchQueue
-import me.nathanfallet.asonar.domain.services.KeywordPopularitySource
+import me.nathanfallet.asonar.domain.services.*
 import me.nathanfallet.asonar.infrastructure.database.*
 import me.nathanfallet.asonar.infrastructure.database.repositories.*
 import me.nathanfallet.asonar.infrastructure.health.DatabaseHealthService
 import me.nathanfallet.asonar.infrastructure.messaging.*
 import me.nathanfallet.asonar.infrastructure.messaging.handlers.FetchKeywordHandler
+import me.nathanfallet.asonar.infrastructure.scraping.AppStoreSubtitleSource
 import me.nathanfallet.asonar.infrastructure.scraping.AsaKeywordPopularitySource
 import me.nathanfallet.asonar.infrastructure.scraping.BrowserHolder
 import me.nathanfallet.asonar.infrastructure.scraping.ItunesAppSearchSource
@@ -75,6 +73,7 @@ val Application.infrastructureModule: Module
                 }
             }
             single<AppSearchSource> { ItunesAppSearchSource(get()) }
+            single<AppSubtitleSource> { AppStoreSubtitleSource(get()) }
             single {
                 BrowserHolder(
                     scope = application,

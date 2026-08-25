@@ -42,6 +42,7 @@ class RecordKeywordRunUseCaseImpl(
                     position = reading.position,
                     storeAppId = reading.storeAppId,
                     appName = reading.appName,
+                    subtitle = reading.subtitle,
                     ratingCount = reading.ratingCount,
                     averageRating = reading.averageRating,
                     capturedAt = payload.capturedAt,

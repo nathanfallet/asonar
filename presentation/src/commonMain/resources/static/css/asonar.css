@@ -410,6 +410,13 @@ html, body {
     font-size: 11px;
 }
 
+.app-subtitle {
+    font-size: 12px;
+    font-weight: 400;
+    font-style: italic;
+    margin-top: 2px;
+}
+
 .country {
     font-family: var(--mono);
     color: var(--muted);

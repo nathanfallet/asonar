@@ -7,6 +7,7 @@ import me.nathanfallet.asonar.domain.models.runs.TopAppReading
 import me.nathanfallet.asonar.domain.repositories.AppsRepository
 import me.nathanfallet.asonar.domain.repositories.KeywordsRepository
 import me.nathanfallet.asonar.domain.services.AppSearchSource
+import me.nathanfallet.asonar.domain.services.AppSubtitleSource
 import me.nathanfallet.asonar.domain.services.KeywordPopularitySource
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase
 import kotlin.time.Clock
@@ -16,6 +17,7 @@ class FetchKeywordUseCaseImpl(
     private val appsRepository: AppsRepository,
     private val popularitySources: List<KeywordPopularitySource>,
     private val appSearchSources: List<AppSearchSource>,
+    private val appSubtitleSources: List<AppSubtitleSource>,
     private val recordKeywordRunUseCase: RecordKeywordRunUseCase,
 ) : FetchKeywordUseCase {
 
@@ -32,11 +34,18 @@ class FetchKeywordUseCaseImpl(
             ?.search(keyword.term, keyword.country, SEARCH_LIMIT)
         val results = search?.apps.orEmpty()
 
+        // Subtitle source for this store (App Store today; others as they're added).
+        val subtitleSource = appSubtitleSources.firstOrNull { it.store == keyword.store }
+
         val topApps = results.take(TOP_N).mapIndexed { index, app ->
             TopAppReading(
                 position = index + 1,
                 storeAppId = app.storeAppId,
                 appName = app.name,
+                // Prefer the subtitle the search already carried (some stores, e.g. Play, include the
+                // short description in results); only fall back to the dedicated source — an extra
+                // fetch — when the search didn't provide it (the case for the iTunes API).
+                subtitle = app.subtitle ?: subtitleSource?.getSubtitle(app.storeAppId, keyword.country),
                 ratingCount = app.ratingCount,
                 averageRating = app.averageRating,
             )

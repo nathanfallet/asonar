@@ -16,6 +16,7 @@ data class TopAppSnapshot(
     val position: Int, // 1-based rank within the captured results
     val storeAppId: String,
     val appName: String,
+    val subtitle: String? = null, // App Store subtitle / Play short description at capture time
     val ratingCount: Int? = null,
     val averageRating: Double? = null,
     val capturedAt: Instant,
@@ -28,6 +29,7 @@ data class TopAppSnapshotPayload(
     val position: Int,
     val storeAppId: String,
     val appName: String,
+    val subtitle: String? = null,
     val ratingCount: Int? = null,
     val averageRating: Double? = null,
     val capturedAt: Instant,

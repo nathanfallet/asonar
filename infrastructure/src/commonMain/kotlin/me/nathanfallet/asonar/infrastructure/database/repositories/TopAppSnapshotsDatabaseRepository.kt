@@ -29,6 +29,7 @@ class TopAppSnapshotsDatabaseRepository(
                 it[position] = payload.position
                 it[storeAppId] = payload.storeAppId
                 it[appName] = payload.appName
+                it[subtitle] = payload.subtitle
                 it[ratingCount] = payload.ratingCount
                 it[averageRating] = payload.averageRating
                 it[capturedAt] = payload.capturedAt
@@ -39,6 +40,7 @@ class TopAppSnapshotsDatabaseRepository(
                 payload.position,
                 payload.storeAppId,
                 payload.appName,
+                payload.subtitle,
                 payload.ratingCount,
                 payload.averageRating,
                 payload.capturedAt,

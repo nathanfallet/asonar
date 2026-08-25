@@ -21,7 +21,17 @@ La boucle cible :
 
 Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre ».
 
-- **Statut :** champ `SearchResultApp.subtitle: String?` ajouté, **`null` pour l'instant**.
+- **Statut : App Store = FAIT de bout en bout** (fetch → persiste → affiche), testé live.
+  - `AppStoreSubtitleSource` (Ktor `HttpClient`, GET page produit, **zéro browser**, sous-titre **localisé
+    par pays** via `/{pays}/app/id{adamId}`, extraction de l'unique `<p class="subtitle …">`, **retry 3×** +
+    **`logger.warn` sur échec** pour ne jamais avaler une erreur). Interface `AppSubtitleSource` + DI.
+  - **Branché dans le fetch** (`FetchKeywordUseCaseImpl`) avec **fallback intelligent** :
+    `app.subtitle ?: subtitleSource.getSubtitle(...)` → si la recherche porte déjà le sous-titre (cas futur
+    Play), pas de 2e appel ; sinon (cas iTunes) on scrape la page.
+  - **Persisté** : colonne `subtitle` sur `TopAppSnapshots` (⚠️ `ALTER TABLE` manuel sur la base existante,
+    `SchemaUtils.create` n'ALTER pas — migration propre toujours à faire). **Exposé** API/MCP
+    (`TopAppSnapshotResponse.subtitle`) + **web** (sous le nom de l'app sur le détail mot-clé). UTF-8 OK.
+  - Vérifié : top-10 « pizza »/FR → 10/10 sous-titres récupérés + affichés.
 - **Source — décision à trancher :**
     - ✅ **Ce que le lookup officiel donne** (`itunes.apple.com/lookup?id={adamId}&country={pays}`, vérifié
       en listant tous les champs) : **titre** (`trackName`) + **description longue** (`description`) + genres,
@@ -36,8 +46,9 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
     - ⚠️ Mais ça reste du **scraping** de page produit → **à discuter avant d'implémenter** (règle : API
       officielle on fonce, scraping on en parle d'abord). En attendant `subtitle = null` ; la description via
       lookup, elle, est « API officielle » → OK pour foncer quand on fait ce chantier.
-- **Reste à faire une fois validé :** brancher la source + **persister** (colonne sur `TopAppSnapshot` →
-  ⚠️ migration : `SchemaUtils.create` n'ALTER pas une table existante).
+- **Reste à faire :** (a) **source Play Store** (short description sur la page listing, même principe, portée
+  par le search si Play le donne → le fallback la prend en charge sans code en plus) ; (b) une **vraie
+  stratégie de migration DB** (aujourd'hui `SchemaUtils.create` + `ALTER` manuel — ça ne scale pas).
 
 ### 2. Couverture de ranking par app — ROI immédiat (data déjà là)
 

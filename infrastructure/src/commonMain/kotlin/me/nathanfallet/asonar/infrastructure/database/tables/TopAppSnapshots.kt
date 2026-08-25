@@ -11,6 +11,7 @@ object TopAppSnapshots : LongIdTable() {
     val position = integer("position")
     val storeAppId = varchar("store_app_id", 255)
     val appName = text("app_name")
+    val subtitle = text("subtitle").nullable()
     val ratingCount = integer("rating_count").nullable()
     val averageRating = double("average_rating").nullable()
     val capturedAt = timestamp("captured_at")
@@ -26,6 +27,7 @@ object TopAppSnapshots : LongIdTable() {
         row[position],
         row[storeAppId],
         row[appName],
+        row[subtitle],
         row[ratingCount],
         row[averageRating],
         row[capturedAt],

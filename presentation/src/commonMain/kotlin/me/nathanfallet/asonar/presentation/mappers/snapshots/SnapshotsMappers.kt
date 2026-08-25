@@ -29,6 +29,7 @@ fun TopAppSnapshot.toTopAppSnapshotResponse() = TopAppSnapshotResponse(
     position = position,
     storeAppId = storeAppId,
     appName = appName,
+    subtitle = subtitle,
     ratingCount = ratingCount,
     averageRating = averageRating,
     capturedAt = capturedAt,

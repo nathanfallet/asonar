@@ -103,6 +103,7 @@ private fun KeywordDetail.toDetailView() = KeywordDetailView(
         TopAppRowView(
             position = it.snapshot.position,
             appName = it.snapshot.appName,
+            subtitle = it.snapshot.subtitle ?: "",
             storeAppId = it.snapshot.storeAppId,
             ratings = it.snapshot.ratingCount?.toString() ?: "—",
             averageRating = it.snapshot.averageRating?.let { r -> (kotlin.math.round(r * 10) / 10).toString() } ?: "—",

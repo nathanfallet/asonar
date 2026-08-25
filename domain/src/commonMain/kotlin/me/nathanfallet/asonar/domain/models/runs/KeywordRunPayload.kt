@@ -36,6 +36,7 @@ data class TopAppReading(
     val position: Int,
     val storeAppId: String,
     val appName: String,
+    val subtitle: String? = null,
     val ratingCount: Int? = null,
     val averageRating: Double? = null,
 )

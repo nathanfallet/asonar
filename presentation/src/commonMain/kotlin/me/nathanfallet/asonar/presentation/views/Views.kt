@@ -42,6 +42,7 @@ data class KeywordDetailView(
 data class TopAppRowView(
     val position: Int,
     val appName: String,
+    val subtitle: String,
     val storeAppId: String,
     val ratings: String,
     val averageRating: String,

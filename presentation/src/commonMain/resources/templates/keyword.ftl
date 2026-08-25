@@ -33,6 +33,9 @@
                         <tr>
                             <td class="col-rank"><span class="pos">${t.position}</span></td>
                             <td class="term">${t.appName}
+                                <#if t.subtitle?has_content>
+                                    <div class="muted app-subtitle">${t.subtitle}</div>
+                                </#if>
                                 <div class="muted mono-sm">${t.storeAppId}</div>
                             </td>
                             <td class="mono">${t.ratings}</td>
