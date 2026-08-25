@@ -22,7 +22,7 @@ val domainModule: Module = module {
     // Keywords
     single<ListKeywordOverviewsUseCase> { ListKeywordOverviewsUseCaseImpl(get(), get()) }
     single<GetKeywordDetailUseCase> { GetKeywordDetailUseCaseImpl(get(), get(), get(), get(), get()) }
-    single<GetOrCreateKeywordUseCase> { GetOrCreateKeywordUseCaseImpl(get()) }
+    single<GetOrCreateKeywordUseCase> { GetOrCreateKeywordUseCaseImpl(get(), get()) }
     single<DeleteKeywordUseCase> { DeleteKeywordUseCaseImpl(get()) }
     single<ListPopularityHistoryUseCase> { ListPopularityHistoryUseCaseImpl(get()) }
     single<GetLatestTopAppsUseCase> { GetLatestTopAppsUseCaseImpl(get()) }

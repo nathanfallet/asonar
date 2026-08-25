@@ -1,5 +1,6 @@
 package me.nathanfallet.asonar.infrastructure.scraping
 
+import dev.kdriver.cdp.domain.target
 import dev.kdriver.core.browser.Browser
 import dev.kdriver.core.browser.Config
 import dev.kdriver.core.browser.createBrowser
@@ -20,6 +21,20 @@ import kotlinx.io.files.Path
  *
  * `expert = true` adds `--disable-web-security`, so a page-context `fetch` to Apple's API subdomains
  * isn't blocked by CORS.
+ *
+ * **Session persistence.** The profile dir survives on disk, but Apple's auth cookies
+ * (`myacinfo`, `app-ads.sid`…) are *session* cookies: Chrome purges them on a clean exit unless it
+ * restores the previous session on the next launch. `--restore-last-session` (see [createBrowser])
+ * flips that switch, so a login done once by hand survives us stopping and re-running the server —
+ * no re-login on every restart during development.
+ *
+ * TODO (later — passkey auto-login): even with session-restore, the session eventually expires and a
+ * human has to re-authenticate. The robust fix is to drive Apple's passkey login from code. kdriver
+ * exposes the full CDP **WebAuthn** domain (`dev.kdriver.cdp.domain.WebAuthn`:
+ * `webAuthn.enable()` → `addVirtualAuthenticator(...)` → `addCredential(...)` /
+ * `setUserVerified(true)` / `setAutomaticPresenceSimulation(true)`). The native macOS Touch ID
+ * prompt itself can't be scripted, but a virtual authenticator seeded once with a credential
+ * registered against the Apple ID could satisfy the WebAuthn challenge headlessly. To investigate.
  */
 class BrowserHolder(
     private val scope: CoroutineScope,
@@ -36,12 +51,38 @@ class BrowserHolder(
         val currentTab = tab ?: run {
             val currentBrowser = browser ?: createBrowser(
                 scope,
-                Config(userDataDir = Path(profileDir), headless = false, expert = true),
+                Config(
+                    userDataDir = Path(profileDir),
+                    headless = false,
+                    expert = true,
+                    // Restore the previous session on launch so Apple's session cookies (and thus the
+                    // interactive login) aren't purged when we stop and restart. See the class doc.
+                    browserArgs = listOf("--restore-last-session"),
+                ),
             ).also { browser = it }
-            currentBrowser.get(baseUrl).also { tab = it }
+            currentBrowser.get(baseUrl).also {
+                tab = it
+                closeStrayTabs(it)
+            }
         }
         awaitBaseUrl(currentTab)
         block(currentTab)
+    }
+
+    /**
+     * Collapses the window back to the single tab we drive. `--restore-last-session` reopens every
+     * tab from the previous run and `get()` adds a fresh one on top, so without this the tab count
+     * climbs by one on every restart. The extras are throwaway — the Apple login lives in the
+     * profile, not in any tab — so we close every page target except ours. Best-effort: a target
+     * that refuses to close is left as-is rather than failing the fetch.
+     */
+    private suspend fun closeStrayTabs(keep: Tab) {
+        val keepId = keep.targetId ?: return
+        runCatching {
+            keep.target.getTargets().targetInfos
+                .filter { it.type == "page" && it.targetId != keepId }
+                .forEach { stray -> runCatching { keep.target.closeTarget(stray.targetId) } }
+        }
     }
 
     /**
