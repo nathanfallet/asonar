@@ -15,6 +15,7 @@ logback = "1.5.20"
 mysql = "8.0.33"
 mcp = "0.14.0"
 kourier = "0.4.7"
+kdriver = "0.5.11"
 
 [plugins]
 jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -55,6 +56,7 @@ ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negoti
 ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-resources = { module = "io.ktor:ktor-client-resources", version.ref = "ktor" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 
@@ -63,6 +65,9 @@ mcp-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref
 
 # Kourier — RabbitMQ / AMQP client (robust = auto-reconnect)
 kourier-client-robust = { module = "dev.kourier:amqp-client-robust", version.ref = "kourier" }
+
+# Kdriver — Chrome DevTools Protocol browser automation (authenticated ASA scraping)
+kdriver-core = { module = "dev.kdriver:core", version.ref = "kdriver" }
 
 # Koin
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }

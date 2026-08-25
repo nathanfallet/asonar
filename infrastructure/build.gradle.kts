@@ -32,6 +32,12 @@ kotlin {
                 api(libs.mysql)
 
                 api(libs.kourier.client.robust)
+                api(libs.kdriver.core)
+
+                api(libs.ktor.client.core)
+                api(libs.ktor.client.cio)
+                api(libs.ktor.client.content.negotiation)
+                api(libs.ktor.serialization.kotlinx.json)
 
                 api(libs.koin.ktor)
                 api(libs.ktor.server.core)

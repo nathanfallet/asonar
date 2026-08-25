@@ -2,8 +2,8 @@ package me.nathanfallet.asonar.infrastructure.messaging.handlers
 
 import dev.kourier.amqp.AMQPResponse
 import dev.kourier.amqp.channel.AMQPChannel
-import kotlinx.serialization.decodeFromString
 import me.nathanfallet.asonar.api.Serialization
+import me.nathanfallet.asonar.domain.usecases.keywords.FetchKeywordUseCase
 import me.nathanfallet.asonar.infrastructure.extensions.handleWithRetryAndDead
 import me.nathanfallet.asonar.infrastructure.messaging.MessageHandler
 import me.nathanfallet.asonar.infrastructure.messaging.MessageHandlerResult
@@ -12,11 +12,12 @@ import me.nathanfallet.asonar.infrastructure.messaging.messages.FetchKeywordMess
 import org.slf4j.LoggerFactory
 
 /**
- * Consumes fetch requests. For now it only logs the intent — the actual scraping (kdriver → the
- * stores) plus [me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase] is the next
- * piece, and plugs in right here.
+ * Consumes fetch requests and runs [FetchKeywordUseCase], which pulls the keyword's data from the
+ * store sources and records it. Retries via the DLX up to 5 times, then dead-letters.
  */
-class FetchKeywordHandler : MessageHandler {
+class FetchKeywordHandler(
+    private val fetchKeywordUseCase: FetchKeywordUseCase,
+) : MessageHandler {
 
     private val logger = LoggerFactory.getLogger(FetchKeywordHandler::class.java)
 
@@ -29,7 +30,8 @@ class FetchKeywordHandler : MessageHandler {
                 val message = Serialization.json.decodeFromString<FetchKeywordMessage>(
                     delivery.message.body.decodeToString(),
                 )
-                logger.info("[fetch] would fetch keyword ${message.keywordId} — scraper not yet implemented")
+                logger.info("[fetch] fetching keyword ${message.keywordId}")
+                fetchKeywordUseCase(message.keywordId)
                 MessageHandlerResult.Success
             }
 

@@ -1,31 +1,24 @@
 package me.nathanfallet.asonar.infrastructure.di
 
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import me.nathanfallet.asonar.domain.repositories.AppsRepository
-import me.nathanfallet.asonar.domain.repositories.KeywordsRepository
-import me.nathanfallet.asonar.domain.repositories.PopularitySnapshotsRepository
-import me.nathanfallet.asonar.domain.repositories.RankSnapshotsRepository
-import me.nathanfallet.asonar.domain.repositories.TopAppSnapshotsRepository
+import me.nathanfallet.asonar.api.Serialization
+import me.nathanfallet.asonar.domain.repositories.*
+import me.nathanfallet.asonar.domain.services.AppSearchSource
 import me.nathanfallet.asonar.domain.services.HealthService
 import me.nathanfallet.asonar.domain.services.KeywordFetchQueue
-import me.nathanfallet.asonar.infrastructure.database.DatabaseConfig
-import me.nathanfallet.asonar.infrastructure.database.DatabaseFactory
-import me.nathanfallet.asonar.infrastructure.database.H2DatabaseFactory
-import me.nathanfallet.asonar.infrastructure.database.MySQLDatabaseFactory
-import me.nathanfallet.asonar.infrastructure.database.TransactionManager
-import me.nathanfallet.asonar.infrastructure.database.TransactionManagerImpl
-import me.nathanfallet.asonar.infrastructure.database.repositories.AppsDatabaseRepository
-import me.nathanfallet.asonar.infrastructure.database.repositories.KeywordsDatabaseRepository
-import me.nathanfallet.asonar.infrastructure.database.repositories.PopularitySnapshotsDatabaseRepository
-import me.nathanfallet.asonar.infrastructure.database.repositories.RankSnapshotsDatabaseRepository
-import me.nathanfallet.asonar.infrastructure.database.repositories.TopAppSnapshotsDatabaseRepository
+import me.nathanfallet.asonar.domain.services.KeywordPopularitySource
+import me.nathanfallet.asonar.infrastructure.database.*
+import me.nathanfallet.asonar.infrastructure.database.repositories.*
 import me.nathanfallet.asonar.infrastructure.health.DatabaseHealthService
-import me.nathanfallet.asonar.infrastructure.messaging.MessageBroker
-import me.nathanfallet.asonar.infrastructure.messaging.RabbitMQFactory
-import me.nathanfallet.asonar.infrastructure.messaging.RabbitMQFactoryImpl
-import me.nathanfallet.asonar.infrastructure.messaging.RabbitMQKeywordFetchQueue
-import me.nathanfallet.asonar.infrastructure.messaging.RabbitMQMessageBroker
+import me.nathanfallet.asonar.infrastructure.messaging.*
 import me.nathanfallet.asonar.infrastructure.messaging.handlers.FetchKeywordHandler
+import me.nathanfallet.asonar.infrastructure.scraping.AsaKeywordPopularitySource
+import me.nathanfallet.asonar.infrastructure.scraping.BrowserHolder
+import me.nathanfallet.asonar.infrastructure.scraping.ItunesAppSearchSource
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -72,8 +65,30 @@ val Application.infrastructureModule: Module
                 )
             }
             single<MessageBroker> { RabbitMQMessageBroker(get()) }
-            single { FetchKeywordHandler() }
+            single { FetchKeywordHandler(get()) }
             single<KeywordFetchQueue> { RabbitMQKeywordFetchQueue(get()) }
+
+            // Outbound HTTP + the per-store data sources the fetch orchestrator selects from
+            single {
+                HttpClient(CIO) {
+                    install(ContentNegotiation) { json(Serialization.json) }
+                }
+            }
+            single<AppSearchSource> { ItunesAppSearchSource(get()) }
+            single {
+                BrowserHolder(
+                    scope = application,
+                    profileDir = application.environment.config.property("asa.profileDir").getString(),
+                    baseUrl = application.environment.config.property("asa.baseUrl").getString(),
+                )
+            }
+            single<KeywordPopularitySource> {
+                AsaKeywordPopularitySource(
+                    browserHolder = get(),
+                    adamId = application.environment.config.property("asa.adamId").getString(),
+                    graphqlEndpoint = application.environment.config.property("asa.graphqlEndpoint").getString(),
+                )
+            }
 
             // Repositories
             single<AppsRepository> { AppsDatabaseRepository(get()) }
