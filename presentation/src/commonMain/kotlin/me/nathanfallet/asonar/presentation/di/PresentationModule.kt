@@ -1,5 +1,6 @@
 package me.nathanfallet.asonar.presentation.di
 
+import me.nathanfallet.asonar.presentation.config.mcpServer
 import me.nathanfallet.asonar.presentation.routes.apps.AppCoverageRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppRatingsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppsRoutesDependencies
@@ -18,6 +19,8 @@ val presentationModule: Module = module {
     single { AppRatingsRoutesDependencies(get()) }
     single { AppCoverageRoutesDependencies(get()) }
     single { KeywordsRoutesDependencies(get(), get(), get(), get(), get(), get(), get(), get()) }
-    single { WebRoutesDependencies(get(), get(), get(), get()) }
+    // The MCP server (single source of the tool catalog: mounted at /mcp and read by the guide page).
+    single { mcpServer(get(), get(), get(), get()) }
+    single { WebRoutesDependencies(get(), get(), get(), get(), get()) }
     single { AppsWebRoutesDependencies(get(), get()) }
 }

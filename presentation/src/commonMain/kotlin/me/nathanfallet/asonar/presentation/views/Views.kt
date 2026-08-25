@@ -91,9 +91,15 @@ data class CoverageRowView(
     val capturedAt: String,
 )
 
-/** The MCP connection guide. */
+/** The MCP connection guide. [tools] is generated live from the registered MCP tools. */
 data class McpGuideView(
     val layout: LayoutView,
     val mcpUrl: String,
     val claudeCodeCommand: String,
+    val tools: List<ToolInfoView>,
+)
+
+data class ToolInfoView(
+    val name: String,
+    val description: String,
 )

@@ -20,22 +20,37 @@ const val MCP_SERVER_NAME = "asonar"
 const val MCP_SERVER_VERSION = "1.0.0"
 
 /**
- * Mounts the MCP server at `POST /mcp` (Streamable HTTP). The [Server] is built **once** here — the
- * tools are registered a single time — and the SDK's DSL hands that same instance to every session,
- * so nothing is rebuilt per request. DNS-rebinding protection defaults to localhost, which is
- * exactly what a local tool wants; there is no auth.
+ * Builds the MCP [Server] with every tool registered **once**. This is the single source of truth for
+ * the tool catalog: both the `/mcp` mount and the web guide page read from the returned instance
+ * (`server.tools`), so the guide can never drift out of sync with what's actually exposed.
+ *
+ * ⚠️ When you add a new `*Tools(...)` group, register it here — that's all: the guide page picks it up
+ * automatically.
+ */
+fun mcpServer(
+    appsDependencies: AppsRoutesDependencies,
+    appRatingsDependencies: AppRatingsRoutesDependencies,
+    appCoverageDependencies: AppCoverageRoutesDependencies,
+    keywordsDependencies: KeywordsRoutesDependencies,
+): Server = Server(
+    Implementation(name = MCP_SERVER_NAME, version = MCP_SERVER_VERSION),
+    ServerOptions(
+        capabilities = ServerCapabilities(tools = ServerCapabilities.Tools(listChanged = null)),
+    ),
+).apply {
+    appsTools(appsDependencies)
+    appRatingsTools(appRatingsDependencies)
+    appCoverageTools(appCoverageDependencies)
+    keywordsTools(keywordsDependencies)
+}
+
+/**
+ * Mounts the MCP server at `POST /mcp` (Streamable HTTP). The [Server] is a Koin singleton (built once
+ * by [mcpServer]), and the SDK's DSL hands that same instance to every session, so nothing is rebuilt
+ * per request. DNS-rebinding protection defaults to localhost, which is exactly what a local tool
+ * wants; there is no auth.
  */
 fun Application.configureMcp() {
-    val server = Server(
-        Implementation(name = MCP_SERVER_NAME, version = MCP_SERVER_VERSION),
-        ServerOptions(
-            capabilities = ServerCapabilities(tools = ServerCapabilities.Tools(listChanged = null)),
-        ),
-    ).apply {
-        appsTools(get<AppsRoutesDependencies>())
-        appRatingsTools(get<AppRatingsRoutesDependencies>())
-        appCoverageTools(get<AppCoverageRoutesDependencies>())
-        keywordsTools(get<KeywordsRoutesDependencies>())
-    }
+    val server = get<Server>()
     mcpStreamableHttp(path = "/mcp") { server }
 }

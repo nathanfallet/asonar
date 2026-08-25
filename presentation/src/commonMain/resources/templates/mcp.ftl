@@ -39,21 +39,16 @@
 </div>
 
 <div class="card">
-    <div class="card-head">Outils disponibles</div>
+    <div class="card-head">Outils disponibles <span class="chip">${view.tools?size} · à jour</span></div>
     <table class="kw-table">
         <thead><tr><th>Outil</th><th>Ce qu'il fait</th></tr></thead>
         <tbody>
-        <tr><td class="term">list_keywords</td><td class="muted">Lister les mots-clés suivis + leur popularité</td></tr>
-        <tr><td class="term">get_keyword</td><td class="muted">Détail d'un mot-clé (popularité, top-10, rangs)</td></tr>
-        <tr><td class="term">track_keyword</td><td class="muted">Commencer à suivre un mot-clé</td></tr>
-        <tr><td class="term">untrack_keyword</td><td class="muted">Arrêter de suivre un mot-clé</td></tr>
-        <tr><td class="term">get_keyword_popularity_history</td><td class="muted">Historique de popularité</td></tr>
-        <tr><td class="term">get_keyword_top_apps</td><td class="muted">Dernier top des résultats</td></tr>
-        <tr><td class="term">get_keyword_ranks</td><td class="muted">Historique de rang d'une de nos apps</td></tr>
-        <tr><td class="term">list_apps</td><td class="muted">Lister nos apps suivies</td></tr>
-        <tr><td class="term">get_app</td><td class="muted">Détail d'une app</td></tr>
-        <tr><td class="term">register_app</td><td class="muted">Enregistrer une app à suivre</td></tr>
-        <tr><td class="term">delete_app</td><td class="muted">Retirer une app</td></tr>
+        <#list view.tools as t>
+            <tr>
+                <td class="term mono-sm">${t.name}</td>
+                <td class="muted">${t.description}</td>
+            </tr>
+        </#list>
         </tbody>
     </table>
 </div>

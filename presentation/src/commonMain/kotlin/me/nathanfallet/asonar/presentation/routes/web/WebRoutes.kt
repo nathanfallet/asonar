@@ -6,6 +6,7 @@ import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.modelcontextprotocol.kotlin.sdk.server.Server
 import me.nathanfallet.asonar.domain.models.application.Pagination
 import me.nathanfallet.asonar.domain.models.keywords.KeywordDetail
 import me.nathanfallet.asonar.domain.models.keywords.KeywordOverview
@@ -24,6 +25,7 @@ data class WebRoutesDependencies(
     val getKeywordDetailUseCase: GetKeywordDetailUseCase,
     val getOrCreateKeywordUseCase: GetOrCreateKeywordUseCase,
     val refreshKeywordUseCase: RefreshKeywordUseCase,
+    val mcpServer: Server,
 )
 
 /** The server-rendered web UI: dashboard, add-keyword form, keyword detail, and the MCP guide. */
@@ -74,6 +76,10 @@ fun Route.webRoutes(dependencies: WebRoutesDependencies) = with(dependencies) {
                         layout = LayoutView("MCP", "mcp"),
                         mcpUrl = mcpUrl,
                         claudeCodeCommand = "claude mcp add --transport http asonar $mcpUrl",
+                        // Generated live from the registered tools, so it never goes stale.
+                        tools = mcpServer.tools.values
+                            .map { ToolInfoView(it.tool.name, it.tool.description ?: "") }
+                            .sortedBy { it.name },
                     )
                 ),
             )
