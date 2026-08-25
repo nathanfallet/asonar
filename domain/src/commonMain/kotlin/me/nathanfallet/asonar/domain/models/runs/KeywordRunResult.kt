@@ -1,6 +1,7 @@
 package me.nathanfallet.asonar.domain.models.runs
 
 import kotlinx.serialization.Serializable
+import me.nathanfallet.asonar.domain.models.snapshots.AppRatingSnapshot
 import me.nathanfallet.asonar.domain.models.snapshots.PopularitySnapshot
 import me.nathanfallet.asonar.domain.models.snapshots.RankSnapshot
 import me.nathanfallet.asonar.domain.models.snapshots.TopAppSnapshot
@@ -11,4 +12,5 @@ data class KeywordRunResult(
     val popularity: PopularitySnapshot? = null,
     val ranks: List<RankSnapshot> = emptyList(),
     val topApps: List<TopAppSnapshot> = emptyList(),
+    val appRatings: List<AppRatingSnapshot> = emptyList(),
 )

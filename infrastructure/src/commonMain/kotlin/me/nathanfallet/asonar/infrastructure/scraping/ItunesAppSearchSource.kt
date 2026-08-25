@@ -32,7 +32,14 @@ class ItunesAppSearchSource(
         val response = Serialization.json.decodeFromString<ItunesSearchResponse>(body)
         return KeywordSearchResult(
             totalResults = response.resultCount,
-            apps = response.results.map { SearchResultApp(it.trackId.toString(), it.trackName) },
+            apps = response.results.map {
+                SearchResultApp(
+                    storeAppId = it.trackId.toString(),
+                    name = it.trackName,
+                    ratingCount = it.userRatingCount,
+                    averageRating = it.averageUserRating,
+                )
+            },
         )
     }
 
@@ -48,4 +55,6 @@ private data class ItunesSearchResponse(
 private data class ItunesApp(
     val trackId: Long,
     val trackName: String,
+    val userRatingCount: Int? = null,
+    val averageUserRating: Double? = null,
 )

@@ -15,13 +15,7 @@ import me.nathanfallet.asonar.domain.usecases.keywords.GetOrCreateKeywordUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.ListKeywordOverviewsUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.RefreshKeywordUseCase
 import me.nathanfallet.asonar.presentation.extensions.parseStore
-import me.nathanfallet.asonar.presentation.views.DashboardView
-import me.nathanfallet.asonar.presentation.views.KeywordDetailView
-import me.nathanfallet.asonar.presentation.views.KeywordRowView
-import me.nathanfallet.asonar.presentation.views.LayoutView
-import me.nathanfallet.asonar.presentation.views.McpGuideView
-import me.nathanfallet.asonar.presentation.views.RankRowView
-import me.nathanfallet.asonar.presentation.views.TopAppRowView
+import me.nathanfallet.asonar.presentation.views.*
 import kotlin.time.Instant
 
 /** Use cases the web UI needs. */
@@ -105,7 +99,15 @@ private fun KeywordDetail.toDetailView() = KeywordDetailView(
     popularityValue = latestPopularity?.popularity ?: 0,
     hasPopularity = latestPopularity != null,
     capturedAt = latestPopularity?.capturedAt.formatted(),
-    topApps = topApps.map { TopAppRowView(it.position, it.appName, it.storeAppId) },
+    topApps = topApps.map {
+        TopAppRowView(
+            position = it.position,
+            appName = it.appName,
+            storeAppId = it.storeAppId,
+            ratings = it.ratingCount?.toString() ?: "—",
+            averageRating = it.averageRating?.let { r -> (kotlin.math.round(r * 10) / 10).toString() } ?: "—",
+        )
+    },
     ranks = ranks.map {
         RankRowView(
             appName = it.app.name,

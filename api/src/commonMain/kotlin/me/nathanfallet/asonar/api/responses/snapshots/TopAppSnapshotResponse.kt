@@ -11,6 +11,8 @@ data class TopAppSnapshotResponse(
     val position: Int,
     val storeAppId: String,
     val appName: String,
+    val ratingCount: Int? = null,
+    val averageRating: Double? = null,
     val capturedAt: Instant,
 )
 

@@ -43,6 +43,8 @@ data class TopAppRowView(
     val position: Int,
     val appName: String,
     val storeAppId: String,
+    val ratings: String,
+    val averageRating: String,
 )
 
 data class RankRowView(

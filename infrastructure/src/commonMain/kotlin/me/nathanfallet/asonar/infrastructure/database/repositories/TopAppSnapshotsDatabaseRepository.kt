@@ -29,6 +29,8 @@ class TopAppSnapshotsDatabaseRepository(
                 it[position] = payload.position
                 it[storeAppId] = payload.storeAppId
                 it[appName] = payload.appName
+                it[ratingCount] = payload.ratingCount
+                it[averageRating] = payload.averageRating
                 it[capturedAt] = payload.capturedAt
             }.value
             TopAppSnapshot(
@@ -37,6 +39,8 @@ class TopAppSnapshotsDatabaseRepository(
                 payload.position,
                 payload.storeAppId,
                 payload.appName,
+                payload.ratingCount,
+                payload.averageRating,
                 payload.capturedAt,
             )
         }

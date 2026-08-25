@@ -6,7 +6,9 @@ import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import me.nathanfallet.asonar.api.requests.apps.RegisterAppRequest
+import me.nathanfallet.asonar.api.resources.apps.AppRatingsApi
 import me.nathanfallet.asonar.api.resources.apps.AppsApi
+import me.nathanfallet.asonar.api.responses.apps.AppRatingHistoryResponse
 import me.nathanfallet.asonar.api.responses.apps.AppResponse
 import me.nathanfallet.asonar.api.responses.apps.AppsResponse
 
@@ -29,5 +31,8 @@ class AppsApiClientImpl(
     override suspend fun delete(id: Long) {
         client.delete(AppsApi.Id(id = id))
     }
+
+    override suspend fun ratings(store: String, storeAppId: String, country: String): AppRatingHistoryResponse =
+        client.get(AppRatingsApi(store = store, storeAppId = storeAppId, country = country)).body()
 
 }

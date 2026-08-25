@@ -1,10 +1,15 @@
 package me.nathanfallet.asonar.presentation.config
 
 import io.ktor.server.application.*
-import io.modelcontextprotocol.kotlin.sdk.server.*
-import io.modelcontextprotocol.kotlin.sdk.types.*
+import io.modelcontextprotocol.kotlin.sdk.server.Server
+import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
+import io.modelcontextprotocol.kotlin.sdk.server.mcpStreamableHttp
+import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
+import me.nathanfallet.asonar.presentation.routes.apps.AppRatingsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.keywords.KeywordsRoutesDependencies
+import me.nathanfallet.asonar.presentation.tools.apps.appRatingsTools
 import me.nathanfallet.asonar.presentation.tools.apps.appsTools
 import me.nathanfallet.asonar.presentation.tools.keywords.keywordsTools
 import org.koin.ktor.ext.get
@@ -26,6 +31,7 @@ fun Application.configureMcp() {
         ),
     ).apply {
         appsTools(get<AppsRoutesDependencies>())
+        appRatingsTools(get<AppRatingsRoutesDependencies>())
         keywordsTools(get<KeywordsRoutesDependencies>())
     }
     mcpStreamableHttp(path = "/mcp") { server }

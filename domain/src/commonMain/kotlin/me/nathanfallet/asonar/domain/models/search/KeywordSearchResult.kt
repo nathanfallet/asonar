@@ -6,8 +6,10 @@ data class KeywordSearchResult(
     val apps: List<SearchResultApp>,
 )
 
-/** One app in the search results (in rank order). */
+/** One app in the search results (in rank order), with its ratings at the time of the search. */
 data class SearchResultApp(
     val storeAppId: String,
     val name: String,
+    val ratingCount: Int? = null,
+    val averageRating: Double? = null,
 )

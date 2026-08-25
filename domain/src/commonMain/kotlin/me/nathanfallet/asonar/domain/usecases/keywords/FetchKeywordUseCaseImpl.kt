@@ -1,6 +1,7 @@
 package me.nathanfallet.asonar.domain.usecases.keywords
 
 import me.nathanfallet.asonar.domain.models.runs.AppRankReading
+import me.nathanfallet.asonar.domain.models.runs.AppRatingReading
 import me.nathanfallet.asonar.domain.models.runs.KeywordRunPayload
 import me.nathanfallet.asonar.domain.models.runs.TopAppReading
 import me.nathanfallet.asonar.domain.repositories.AppsRepository
@@ -32,7 +33,23 @@ class FetchKeywordUseCaseImpl(
         val results = search?.apps.orEmpty()
 
         val topApps = results.take(TOP_N).mapIndexed { index, app ->
-            TopAppReading(position = index + 1, storeAppId = app.storeAppId, appName = app.name)
+            TopAppReading(
+                position = index + 1,
+                storeAppId = app.storeAppId,
+                appName = app.name,
+                ratingCount = app.ratingCount,
+                averageRating = app.averageRating,
+            )
+        }
+
+        // Ratings for every app seen — recorded per app/store/country (shared across keywords).
+        val appRatings = results.map { app ->
+            AppRatingReading(
+                storeAppId = app.storeAppId,
+                name = app.name,
+                ratingCount = app.ratingCount,
+                averageRating = app.averageRating,
+            )
         }
 
         // Where each of our apps on this store lands in the results.
@@ -50,10 +67,13 @@ class FetchKeywordUseCaseImpl(
         recordKeywordRunUseCase(
             KeywordRunPayload(
                 keywordId = keywordId,
+                store = keyword.store,
+                country = keyword.country,
                 capturedAt = capturedAt,
                 popularity = popularity,
                 ranks = ranks,
                 topApps = topApps,
+                appRatings = appRatings,
             )
         )
     }

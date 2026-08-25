@@ -17,6 +17,7 @@ val domainModule: Module = module {
     single<GetAppUseCase> { GetAppUseCaseImpl(get()) }
     single<GetOrCreateAppUseCase> { GetOrCreateAppUseCaseImpl(get()) }
     single<DeleteAppUseCase> { DeleteAppUseCaseImpl(get()) }
+    single<GetAppRatingHistoryUseCase> { GetAppRatingHistoryUseCaseImpl(get()) }
 
     // Keywords
     single<ListKeywordOverviewsUseCase> { ListKeywordOverviewsUseCaseImpl(get(), get()) }
@@ -29,7 +30,7 @@ val domainModule: Module = module {
     single<RefreshKeywordUseCase> { RefreshKeywordUseCaseImpl(get(), get()) }
 
     // Runs — internal: written by the fetch pipeline, never exposed to the API/MCP/web.
-    single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get()) }
+    single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get(), get()) }
     single<FetchKeywordUseCase> {
         FetchKeywordUseCaseImpl(get(), get(), getAll(), getAll(), get())
     }

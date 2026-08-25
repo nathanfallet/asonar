@@ -1,6 +1,7 @@
 package me.nathanfallet.asonar.client.api.apps
 
 import me.nathanfallet.asonar.api.requests.apps.RegisterAppRequest
+import me.nathanfallet.asonar.api.responses.apps.AppRatingHistoryResponse
 import me.nathanfallet.asonar.api.responses.apps.AppResponse
 import me.nathanfallet.asonar.api.responses.apps.AppsResponse
 
@@ -18,5 +19,8 @@ interface AppsApiClient {
 
     /** Stops following an app. */
     suspend fun delete(id: Long)
+
+    /** Reads an app's ratings history in a market (with the ratings-per-day velocity). */
+    suspend fun ratings(store: String, storeAppId: String, country: String): AppRatingHistoryResponse
 
 }

@@ -1,5 +1,6 @@
 package me.nathanfallet.asonar.presentation.di
 
+import me.nathanfallet.asonar.presentation.routes.apps.AppRatingsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.keywords.KeywordsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.web.WebRoutesDependencies
@@ -12,6 +13,7 @@ import org.koin.dsl.module
  */
 val presentationModule: Module = module {
     single { AppsRoutesDependencies(get(), get(), get(), get()) }
+    single { AppRatingsRoutesDependencies(get()) }
     single { KeywordsRoutesDependencies(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { WebRoutesDependencies(get(), get(), get(), get()) }
 }
