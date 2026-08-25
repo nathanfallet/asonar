@@ -229,13 +229,16 @@ html, body {
 
 .detail-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, …) lets the columns shrink instead of overflowing — without it, long app names
+       and ids force the grid wider than its track and the content gets clipped. Bias width toward
+       the data-dense "Top des résultats" table. */
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
     gap: 18px;
 }
 
-@media (max-width: 780px) {
+@media (max-width: 900px) {
     .detail-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -332,9 +335,10 @@ html, body {
 
 /* Layout */
 .container {
-    max-width: 1040px;
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 36px 28px 64px;
+    padding: 36px 32px 64px;
 }
 
 .page-head {
@@ -475,9 +479,9 @@ html, body {
 }
 
 .footer {
-    max-width: 1040px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 20px 28px 40px;
+    padding: 20px 32px 40px;
     color: var(--muted);
     font-family: var(--mono);
     font-size: 12px;

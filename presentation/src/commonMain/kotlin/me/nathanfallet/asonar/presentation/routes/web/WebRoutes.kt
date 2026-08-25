@@ -101,11 +101,12 @@ private fun KeywordDetail.toDetailView() = KeywordDetailView(
     capturedAt = latestPopularity?.capturedAt.formatted(),
     topApps = topApps.map {
         TopAppRowView(
-            position = it.position,
-            appName = it.appName,
-            storeAppId = it.storeAppId,
-            ratings = it.ratingCount?.toString() ?: "—",
-            averageRating = it.averageRating?.let { r -> (kotlin.math.round(r * 10) / 10).toString() } ?: "—",
+            position = it.snapshot.position,
+            appName = it.snapshot.appName,
+            storeAppId = it.snapshot.storeAppId,
+            ratings = it.snapshot.ratingCount?.toString() ?: "—",
+            averageRating = it.snapshot.averageRating?.let { r -> (kotlin.math.round(r * 10) / 10).toString() } ?: "—",
+            reviews30d = it.ratingsPer30d?.let { v -> if (v >= 0) "+$v" else v.toString() } ?: "—",
         )
     },
     ranks = ranks.map {

@@ -13,6 +13,8 @@ data class TopAppSnapshotResponse(
     val appName: String,
     val ratingCount: Int? = null,
     val averageRating: Double? = null,
+    /** New ratings expected over 30 days (rating velocity × 30). Null until there's enough history. */
+    val ratingsPer30d: Int? = null,
     val capturedAt: Instant,
 )
 

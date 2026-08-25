@@ -25,6 +25,7 @@
                         <th>App</th>
                         <th>Notes</th>
                         <th>Moy.</th>
+                        <th>Avis / 30j</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -36,6 +37,7 @@
                             </td>
                             <td class="mono">${t.ratings}</td>
                             <td class="mono">${t.averageRating}<#if t.averageRating != "—"> ★</#if></td>
+                            <td class="mono">${t.reviews30d}</td>
                         </tr>
                     </#list>
                     </tbody>

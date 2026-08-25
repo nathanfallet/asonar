@@ -27,7 +27,7 @@ fun KeywordOverview.toKeywordResponse() = keyword.toKeywordResponse(latestPopula
 
 fun KeywordDetail.toKeywordDetailResponse() = KeywordDetailResponse(
     keyword = keyword.toKeywordResponse(latestPopularity),
-    topApps = topApps.map { it.toTopAppSnapshotResponse() },
+    topApps = topApps.map { it.snapshot.toTopAppSnapshotResponse().copy(ratingsPer30d = it.ratingsPer30d) },
     ranks = ranks.map { it.toKeywordAppRankResponse() },
 )
 
