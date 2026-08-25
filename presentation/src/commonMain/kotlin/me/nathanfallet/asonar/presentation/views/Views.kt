@@ -69,7 +69,7 @@ data class AppOptionView(
     val storeAppId: String,
 )
 
-/** One app's ranking coverage across every tracked keyword on its store. */
+/** One app's ranking coverage: stats + the multi-line rank chart + the per-keyword table. */
 data class AppCoverageView(
     val layout: LayoutView,
     val appName: String,
@@ -77,7 +77,26 @@ data class AppCoverageView(
     val storeAppId: String,
     val rankedCount: Int,
     val totalCount: Int,
+    val summary: CoverageSummaryView,
+    val chartJson: String, // JSON consumed by /js/chart.js
+    val hasChart: Boolean,
     val rows: List<CoverageRowView>,
+)
+
+/** AppFigures-style summary cards above the chart. */
+data class CoverageSummaryView(
+    val avgRankLabel: String,
+    val bestRankLabel: String,
+    val worstRankLabel: String,
+    val top5: Int,
+    val top25: Int,
+    val top100: Int,
+    val beyond100: Int,
+    val distMax: Int,
+    val wentUp: Int,
+    val wentDown: Int,
+    val unchanged: Int,
+    val moveTotal: Int,
 )
 
 data class CoverageRowView(

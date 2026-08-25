@@ -10,6 +10,54 @@
         </p>
     </section>
 
+    <#assign s = view.summary>
+    <div class="stat-grid">
+        <div class="card stat">
+            <div class="stat-title">Rang moyen</div>
+            <div class="stat-main">
+                <span class="stat-big mono">${s.avgRankLabel}</span>
+                <span class="stat-side"><span class="muted">Meilleur</span> <strong
+                            class="mono">${s.bestRankLabel}</strong></span>
+                <span class="stat-side"><span class="muted">Pire</span> <strong
+                            class="mono">${s.worstRankLabel}</strong></span>
+            </div>
+        </div>
+
+        <div class="card stat">
+            <div class="stat-title">Distribution</div>
+            <div class="dist">
+                <#list [{"n": s.top5, "l": "TOP 5"}, {"n": s.top25, "l": "TOP 25"}, {"n": s.top100, "l": "TOP 100"}, {"n": s.beyond100, "l": ">100"}] as b>
+                    <div class="dist-col">
+                        <span class="dist-n mono">${b.n}</span>
+                        <span class="dist-bar" style="height: ${(4 + b.n / s.distMax * 34)?round}px"></span>
+                        <span class="dist-l">${b.l}</span>
+                    </div>
+                </#list>
+            </div>
+        </div>
+
+        <div class="card stat">
+            <div class="stat-title">Mouvement</div>
+            <div class="move">
+                <span class="move-up">↑ ${s.wentUp}</span>
+                <span class="move-down">↓ ${s.wentDown}</span>
+                <span class="move-flat">= ${s.unchanged}</span>
+            </div>
+            <div class="move-bar">
+                <span class="up" style="width: ${(s.wentUp / s.moveTotal * 100)?round}%"></span>
+                <span class="down" style="width: ${(s.wentDown / s.moveTotal * 100)?round}%"></span>
+                <span class="flat" style="width: ${(s.unchanged / s.moveTotal * 100)?round}%"></span>
+            </div>
+        </div>
+    </div>
+
+    <#if view.hasChart>
+        <div class="card chart-card">
+            <div class="card-head">Évolution du rang dans le temps</div>
+            <div class="rank-chart" data-chart="${view.chartJson}"></div>
+        </div>
+    </#if>
+
     <div class="card">
         <div class="card-head">Couverture de ranking</div>
         <#if (view.rows?size > 0)>
@@ -54,8 +102,10 @@
             </table>
         <#else>
             <div class="empty">
-                <p class="muted">Aucun mot-clé suivi sur ce store. Ajoute des mots-clés depuis le dashboard.</p>
+                <p class="muted">Aucun mot-clé suivi sur ce store. Ajoute des mots-clés depuis les Mots-clés.</p>
             </div>
         </#if>
     </div>
+
+    <script src="/js/chart.js"></script>
 </@l.page>

@@ -22,9 +22,27 @@ data class KeywordCoverageEntryResponse(
     val history: List<RankPointResponse> = emptyList(),
 )
 
+/** High-level stats over an app's coverage (average/best/worst rank, distribution, movement). */
+@Serializable
+data class CoverageSummaryResponse(
+    val averageRank: Int? = null,
+    val bestRank: Int? = null,
+    val worstRank: Int? = null,
+    val rankedCount: Int = 0,
+    val trackedCount: Int = 0,
+    val top5: Int = 0,
+    val top25: Int = 0,
+    val top100: Int = 0,
+    val beyond100: Int = 0,
+    val wentUp: Int = 0,
+    val wentDown: Int = 0,
+    val unchanged: Int = 0,
+)
+
 /** An app's ranking coverage across every keyword tracked on its store. */
 @Serializable
 data class AppKeywordCoverageResponse(
     val app: AppResponse,
+    val summary: CoverageSummaryResponse,
     val entries: List<KeywordCoverageEntryResponse>,
 )

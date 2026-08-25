@@ -442,6 +442,240 @@ html, body {
     width: 260px;
 }
 
+/* App coverage: summary stat cards */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+    .stat-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.stat {
+    padding: 16px 18px;
+}
+
+.stat-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.stat-main {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+}
+
+.stat-big {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.stat-side {
+    font-size: 13px;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+}
+
+.dist {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    height: 62px;
+}
+
+.dist-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    flex: 1;
+}
+
+.dist-n {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dist-bar {
+    width: 70%;
+    max-width: 34px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+    border-radius: 4px 4px 0 0;
+}
+
+.dist-l {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.move {
+    display: flex;
+    gap: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.move-up {
+    color: var(--accent);
+}
+
+.move-down {
+    color: #ff6b6b;
+}
+
+.move-flat {
+    color: var(--muted);
+}
+
+.move-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--panel-2);
+}
+
+.move-bar .up {
+    background: var(--accent);
+}
+
+.move-bar .down {
+    background: #ff6b6b;
+}
+
+.move-bar .flat {
+    background: var(--line);
+}
+
+/* App coverage: the big multi-line rank chart */
+.chart-card {
+    margin-bottom: 18px;
+}
+
+.rank-chart {
+    position: relative;
+    padding: 14px 16px 10px;
+}
+
+.chart-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+}
+
+.chart-grid line {
+    stroke: var(--line);
+    stroke-width: 1;
+}
+
+.chart-axis {
+    fill: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+}
+
+.chart-series polyline {
+    fill: none;
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+}
+
+.chart-hover {
+    stroke: var(--bg);
+    stroke-width: 2;
+    pointer-events: none;
+}
+
+.chart-tip {
+    position: absolute;
+    transform: translate(-50%, -130%);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 9px;
+    font-size: 12px;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.chart-tip-k {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.chart-tip-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.chart-tip-v {
+    font-family: var(--mono);
+    color: var(--muted);
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 4px 2px;
+}
+
+.chart-leg {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+.chart-leg-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.chart-leg.off {
+    color: var(--muted);
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.chart-leg.off .chart-leg-dot {
+    background: var(--muted) !important;
+}
+
 /* App coverage: rank pills + rank-history sparkline */
 .rank-pill {
     font-family: var(--mono);

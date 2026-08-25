@@ -12,7 +12,30 @@ import kotlin.time.Instant
 @Serializable
 data class AppKeywordCoverage(
     val app: App,
+    val summary: CoverageSummary,
     val entries: List<KeywordCoverageEntry>,
+)
+
+/**
+ * High-level stats over the app's coverage, à la AppFigures: the average/best/worst current rank, the
+ * distribution across rank bands, and how many keywords moved up/down/held since the previous reading.
+ */
+@Serializable
+data class CoverageSummary(
+    val averageRank: Int? = null,
+    val bestRank: Int? = null,
+    val worstRank: Int? = null,
+    val rankedCount: Int = 0,
+    val trackedCount: Int = 0,
+    // Exclusive rank bands over the *ranked* keywords.
+    val top5: Int = 0,
+    val top25: Int = 0,
+    val top100: Int = 0,
+    val beyond100: Int = 0,
+    // Movement vs the previous reading (only keywords with a comparable prior rank are counted).
+    val wentUp: Int = 0,
+    val wentDown: Int = 0,
+    val unchanged: Int = 0,
 )
 
 /** One tracked keyword and our app's standing on it: current rank (null = not ranked) + history. */
