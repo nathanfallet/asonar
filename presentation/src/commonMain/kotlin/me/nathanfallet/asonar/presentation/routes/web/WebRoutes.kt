@@ -29,11 +29,14 @@ data class WebRoutesDependencies(
 /** The server-rendered web UI: dashboard, add-keyword form, keyword detail, and the MCP guide. */
 fun Route.webRoutes(dependencies: WebRoutesDependencies) = with(dependencies) {
     get("/") {
+        call.respondRedirect("/keywords")
+    }
+    get("/keywords") {
         val rows = listKeywordOverviewsUseCase(Pagination(limit = 100)).map { it.toRow() }
         call.respond(
             FreeMarkerContent(
                 "dashboard.ftl",
-                mapOf("view" to DashboardView(LayoutView("Dashboard", "dashboard"), rows)),
+                mapOf("view" to DashboardView(LayoutView("Mots-clés", "keywords"), rows)),
             )
         )
     }
@@ -45,7 +48,7 @@ fun Route.webRoutes(dependencies: WebRoutesDependencies) = with(dependencies) {
         if (term != null && store != null && country != null) {
             getOrCreateKeywordUseCase(KeywordPayload(term, store, country))
         }
-        call.respondRedirect("/")
+        call.respondRedirect("/keywords")
     }
     get("/keywords/{id}") {
         val detail = call.parameters["id"]?.toLongOrNull()?.let { getKeywordDetailUseCase(it) }
@@ -58,7 +61,7 @@ fun Route.webRoutes(dependencies: WebRoutesDependencies) = with(dependencies) {
     post("/keywords/{id}/refresh") {
         val id = call.parameters["id"]?.toLongOrNull()
         if (id != null) refreshKeywordUseCase(id)
-        call.respondRedirect(if (id != null) "/keywords/$id" else "/")
+        call.respondRedirect(if (id != null) "/keywords/$id" else "/keywords")
     }
     get("/mcp-guide") {
         val origin = call.request.origin
@@ -90,7 +93,7 @@ private fun KeywordOverview.toRow() = KeywordRowView(
 )
 
 private fun KeywordDetail.toDetailView() = KeywordDetailView(
-    layout = LayoutView(keyword.term, "dashboard"),
+    layout = LayoutView(keyword.term, "keywords"),
     id = keyword.id,
     term = keyword.term,
     store = keyword.store.name,

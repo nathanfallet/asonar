@@ -15,7 +15,8 @@
         <span class="brand-tag">ASO radar</span>
     </a>
     <nav class="nav">
-        <a href="/"<#if layout.activeNav == "dashboard"> class="active"</#if>>Dashboard</a>
+        <a href="/keywords"<#if layout.activeNav == "keywords"> class="active"</#if>>Mots-clés</a>
+        <a href="/apps"<#if layout.activeNav == "apps"> class="active"</#if>>Apps</a>
         <a href="/mcp-guide" class="nav-cta<#if layout.activeNav == "mcp"> active</#if>">Connecter à Claude</a>
     </nav>
 </header>

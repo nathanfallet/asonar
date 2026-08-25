@@ -1,7 +1,7 @@
 <#import "layout.ftl" as l>
 <@l.page view.layout>
     <section class="page-head">
-        <a class="back" href="/">← Tous les mots-clés</a>
+        <a class="back" href="/keywords">← Tous les mots-clés</a>
         <h1>${view.term}</h1>
         <p class="lede">
             <span class="chip">${view.store}</span>

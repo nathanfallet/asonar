@@ -17,6 +17,7 @@ val domainModule: Module = module {
     single<GetAppUseCase> { GetAppUseCaseImpl(get()) }
     single<GetOrCreateAppUseCase> { GetOrCreateAppUseCaseImpl(get()) }
     single<DeleteAppUseCase> { DeleteAppUseCaseImpl(get()) }
+    single<GetAppKeywordCoverageUseCase> { GetAppKeywordCoverageUseCaseImpl(get(), get(), get(), get()) }
     single<GetAppRatingHistoryUseCase> { GetAppRatingHistoryUseCaseImpl(get()) }
 
     // Keywords

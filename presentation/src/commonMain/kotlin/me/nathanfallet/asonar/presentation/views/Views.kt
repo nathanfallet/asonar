@@ -56,6 +56,41 @@ data class RankRowView(
     val capturedAt: String,
 )
 
+/** The apps tab: pick one of our tracked apps to see its keyword coverage. */
+data class AppsListView(
+    val layout: LayoutView,
+    val apps: List<AppOptionView>,
+)
+
+data class AppOptionView(
+    val id: Long,
+    val name: String,
+    val store: String,
+    val storeAppId: String,
+)
+
+/** One app's ranking coverage across every tracked keyword on its store. */
+data class AppCoverageView(
+    val layout: LayoutView,
+    val appName: String,
+    val store: String,
+    val storeAppId: String,
+    val rankedCount: Int,
+    val totalCount: Int,
+    val rows: List<CoverageRowView>,
+)
+
+data class CoverageRowView(
+    val keywordId: Long,
+    val term: String,
+    val country: String,
+    val popularityLabel: String,
+    val rankLabel: String,
+    val ranked: Boolean,
+    val sparkPoints: String, // SVG polyline points, "" when there isn't enough history
+    val capturedAt: String,
+)
+
 /** The MCP connection guide. */
 data class McpGuideView(
     val layout: LayoutView,

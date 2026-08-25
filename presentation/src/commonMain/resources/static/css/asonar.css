@@ -442,6 +442,44 @@ html, body {
     width: 260px;
 }
 
+/* App coverage: rank pills + rank-history sparkline */
+.rank-pill {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    background: var(--panel-2);
+    white-space: nowrap;
+}
+
+.rank-pill.ranked {
+    color: #06251a;
+    background: var(--accent);
+    border-color: transparent;
+    font-weight: 600;
+}
+
+.col-spark {
+    width: 120px;
+}
+
+.spark {
+    width: 100px;
+    height: 24px;
+    display: block;
+}
+
+.spark polyline {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
 .col-when {
     width: 150px;
     white-space: nowrap;

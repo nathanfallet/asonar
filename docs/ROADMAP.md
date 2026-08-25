@@ -50,10 +50,16 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
   par le search si Play le donne → le fallback la prend en charge sans code en plus) ; (b) une **vraie
   stratégie de migration DB** (aujourd'hui `SchemaUtils.create` + `ALTER` manuel — ça ne scale pas).
 
-### 2. Couverture de ranking par app — ROI immédiat (data déjà là)
+### 2. Couverture de ranking par app — ✅ FAIT (vertical + graphe)
 
-- Sur tous les mots-clés suivis : **ranké / pas ranké** + historique de rang, par app.
-- On stocke déjà les rank-snapshots par (mot-clé, app) → surtout une requête + un tool MCP + l'onglet Apps.
+- `GetAppKeywordCoverageUseCase` : pour une app, tous les mots-clés suivis sur son store avec le **rang
+  courant** (null = pas ranké), la popularité, et **l'historique de rang**. Trié rangés d'abord.
+- **API** `GET /api/app-coverage?appId=` + **tool MCP `get_app_coverage`** (le cœur agent-first).
+- **Onglet « Apps »** (web) : `/apps` (sélecteur) + `/apps/{id}` = tableau ranké/pas-ranké (pills) +
+  **sparkline SVG** du rang par mot-clé (meilleur rang = en haut). ⇒ **le chantier #5 est absorbé ici**
+  (moins les suggestions, qui dépendent de #3).
+- Vérifié live : NutriMaxing ranké #50 « quoi manger », #141 « what to eat », pas ranké pizza/cooking
+  fever/tacos ; graphe testé avec un historique injecté puis nettoyé.
 
 ### 3. Moteur de scoring de pertinence — LE CERVEAU
 
@@ -66,10 +72,10 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
 - Expose 2 + 3 pour que l'agent pilote la boucle : **bulk add** de mots-clés → récupère les recommandations
   (« vise ceux-là, laisse tomber ceux-là »).
 
-### 5. Onglet « Apps » (web)
+### 5. Onglet « Apps » (web) — ✅ en grande partie fait (dans #2)
 
-- Sélecteur d'app → mots-clés où on rank, **graphe d'historique** (façon AppFigures), suggestions.
-- Secondaire au MCP mais utile pour nous (humains).
+- Sélecteur d'app + tableau de couverture + **graphe d'historique de rang** : livrés avec #2.
+- Reste : afficher les **suggestions** de mots-clés (= sortie du scoring #3) sur cette page.
 
 ## Livré récemment
 

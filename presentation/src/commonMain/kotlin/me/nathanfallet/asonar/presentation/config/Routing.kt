@@ -6,10 +6,12 @@ import io.ktor.server.http.content.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.resources.*
 import io.ktor.server.routing.*
+import me.nathanfallet.asonar.presentation.routes.apps.appCoverageRoutes
 import me.nathanfallet.asonar.presentation.routes.apps.appRatingsRoutes
 import me.nathanfallet.asonar.presentation.routes.apps.appsRoutes
 import me.nathanfallet.asonar.presentation.routes.health.healthRoutes
 import me.nathanfallet.asonar.presentation.routes.keywords.keywordsRoutes
+import me.nathanfallet.asonar.presentation.routes.web.appsWebRoutes
 import me.nathanfallet.asonar.presentation.routes.web.webRoutes
 import org.koin.ktor.ext.get
 
@@ -32,10 +34,12 @@ fun Application.configureRouting() {
         // JSON API
         appsRoutes(get())
         appRatingsRoutes(get())
+        appCoverageRoutes(get())
         keywordsRoutes(get())
 
         // Server-rendered web UI + its assets
         webRoutes(get())
+        appsWebRoutes(get())
         staticResources("", "static")
     }
 }

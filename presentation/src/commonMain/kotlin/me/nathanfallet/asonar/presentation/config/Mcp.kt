@@ -6,9 +6,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.mcpStreamableHttp
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
+import me.nathanfallet.asonar.presentation.routes.apps.AppCoverageRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppRatingsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.keywords.KeywordsRoutesDependencies
+import me.nathanfallet.asonar.presentation.tools.apps.appCoverageTools
 import me.nathanfallet.asonar.presentation.tools.apps.appRatingsTools
 import me.nathanfallet.asonar.presentation.tools.apps.appsTools
 import me.nathanfallet.asonar.presentation.tools.keywords.keywordsTools
@@ -32,6 +34,7 @@ fun Application.configureMcp() {
     ).apply {
         appsTools(get<AppsRoutesDependencies>())
         appRatingsTools(get<AppRatingsRoutesDependencies>())
+        appCoverageTools(get<AppCoverageRoutesDependencies>())
         keywordsTools(get<KeywordsRoutesDependencies>())
     }
     mcpStreamableHttp(path = "/mcp") { server }
