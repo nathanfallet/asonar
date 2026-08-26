@@ -44,6 +44,6 @@ val domainModule: Module = module {
     // Runs — internal: written by the fetch pipeline, never exposed to the API/MCP/web.
     single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get(), get()) }
     single<FetchKeywordUseCase> {
-        FetchKeywordUseCaseImpl(get(), get(), getAll(), getAll(), getAll(), get(), get(), get())
+        FetchKeywordUseCaseImpl(get(), get(), getAll(), getAll(), getAll(), get(), get(), get(), get(), get())
     }
 }

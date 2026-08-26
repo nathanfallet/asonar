@@ -6,9 +6,7 @@ import me.nathanfallet.asonar.domain.models.runs.AppRankReading
 import me.nathanfallet.asonar.domain.models.runs.AppRatingReading
 import me.nathanfallet.asonar.domain.models.runs.KeywordRunPayload
 import me.nathanfallet.asonar.domain.models.runs.TopAppReading
-import me.nathanfallet.asonar.domain.repositories.AppsRepository
-import me.nathanfallet.asonar.domain.repositories.KeywordSignalsRepository
-import me.nathanfallet.asonar.domain.repositories.KeywordsRepository
+import me.nathanfallet.asonar.domain.repositories.*
 import me.nathanfallet.asonar.domain.services.AppSearchSource
 import me.nathanfallet.asonar.domain.services.AppSubtitleSource
 import me.nathanfallet.asonar.domain.services.KeywordPopularitySource
@@ -16,6 +14,8 @@ import me.nathanfallet.asonar.domain.usecases.apps.GetAppRatingHistoryUseCase
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase
 import kotlin.math.roundToInt
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 
 class FetchKeywordUseCaseImpl(
     private val keywordsRepository: KeywordsRepository,
@@ -26,15 +26,35 @@ class FetchKeywordUseCaseImpl(
     private val recordKeywordRunUseCase: RecordKeywordRunUseCase,
     private val getAppRatingHistoryUseCase: GetAppRatingHistoryUseCase,
     private val keywordSignalsRepository: KeywordSignalsRepository,
+    private val popularitySnapshotsRepository: PopularitySnapshotsRepository,
+    private val topAppSnapshotsRepository: TopAppSnapshotsRepository,
 ) : FetchKeywordUseCase {
 
     override suspend fun invoke(keywordId: Long) {
         val keyword = keywordsRepository.get(keywordId) ?: return
-        val capturedAt = Clock.System.now()
+        val now = Clock.System.now()
 
-        // Popularity (App Store = ASA; other stores = their own source, when added).
-        val popularity = popularitySources.firstOrNull { it.store == keyword.store }
-            ?.getPopularity(keyword.term, keyword.country)
+        // Age-gating — the snapshots already carry capturedAt, so this needs no new state. Use the two
+        // dates separately: the newest of the two = "last fetch"; popularity's own date drives its gate.
+        val lastPopularityAt = popularitySnapshotsRepository.getLatestForKeyword(keywordId)?.capturedAt
+        val lastRankingAt = topAppSnapshotsRepository.listLatestForKeyword(keywordId).firstOrNull()?.capturedAt
+
+        // Skip entirely if anything was fetched for this keyword within the last hour.
+        val lastFetchAt = listOfNotNull(lastPopularityAt, lastRankingAt).maxOrNull()
+        if (lastFetchAt != null && now - lastFetchAt < MIN_REFRESH_INTERVAL) return
+
+        val capturedAt = now
+
+        // Popularity is the expensive part (ASA via a real browser) and moves slowly — refetch it at
+        // most weekly, keyed on ITS OWN date so daily ranking refreshes never starve it. When skipped,
+        // popularity stays null → RecordKeywordRun keeps the previous snapshot as the latest value.
+        val refetchPopularity = lastPopularityAt == null || now - lastPopularityAt >= POPULARITY_MAX_AGE
+        val popularity = if (refetchPopularity) {
+            popularitySources.firstOrNull { it.store == keyword.store }
+                ?.getPopularity(keyword.term, keyword.country)
+        } else {
+            null
+        }
 
         // Ranked results (App Store = iTunes; other stores later).
         val search = appSearchSources.firstOrNull { it.store == keyword.store }
@@ -119,6 +139,12 @@ class FetchKeywordUseCaseImpl(
         /** How deep we scan the results to find our apps' ranks (the top slice is used for topApps). */
         private const val SEARCH_LIMIT = 200
         private const val TOP_N = 10
+
+        /** Don't refetch a keyword more often than this (adjustable). */
+        private val MIN_REFRESH_INTERVAL = 1.hours
+
+        /** Refetch the (expensive) popularity at most this often, on its own snapshot date (adjustable). */
+        private val POPULARITY_MAX_AGE = 7.days
     }
 
 }
