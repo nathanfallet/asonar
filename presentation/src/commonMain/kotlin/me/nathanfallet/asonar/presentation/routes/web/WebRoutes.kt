@@ -34,7 +34,7 @@ fun Route.webRoutes(dependencies: WebRoutesDependencies) = with(dependencies) {
         call.respondRedirect("/keywords")
     }
     get("/keywords") {
-        val rows = listKeywordOverviewsUseCase(Pagination(limit = 1000)).map { it.toRow() }
+        val rows = listKeywordOverviewsUseCase(Pagination(limit = 0)).map { it.toRow() }
         call.respond(
             FreeMarkerContent(
                 "dashboard.ftl",

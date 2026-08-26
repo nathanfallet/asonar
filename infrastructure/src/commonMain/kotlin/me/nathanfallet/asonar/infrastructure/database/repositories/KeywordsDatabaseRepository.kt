@@ -33,7 +33,9 @@ class KeywordsDatabaseRepository(
             Keywords.selectAll()
                 .apply { pagination.search?.let { s -> andWhere { Keywords.term like "%$s%" } } }
                 .orderBy(Keywords.createdAt to SortOrder.DESC)
-                .limit(pagination.limit.toInt()).offset(pagination.offset)
+                // limit <= 0 means "no limit" — a stopgap until real pagination (see ROADMAP): with a
+                // few thousand keywords on a local instance, load them all rather than truncate.
+                .apply { if (pagination.limit > 0) limit(pagination.limit.toInt()).offset(pagination.offset) }
                 .map { Keywords.toKeyword(it) }
         }
 

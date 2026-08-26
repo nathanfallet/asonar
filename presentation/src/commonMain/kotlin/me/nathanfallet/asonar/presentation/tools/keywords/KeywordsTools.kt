@@ -34,7 +34,7 @@ fun Server.keywordsTools(dependencies: KeywordsRoutesDependencies) = with(depend
         description = "List the tracked keywords with their latest popularity (the 0-100 index).",
         inputSchema = ToolSchema(),
     ) {
-        val overviews = listKeywordOverviewsUseCase(Pagination(limit = 1000))
+        val overviews = listKeywordOverviewsUseCase(Pagination(limit = 0))
         CallToolResult(
             content = listOf(TextContent(Serialization.json.encodeToString(overviews.map { it.toKeywordResponse() }))),
         )

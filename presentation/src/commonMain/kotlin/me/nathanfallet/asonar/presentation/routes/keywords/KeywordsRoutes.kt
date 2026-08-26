@@ -45,7 +45,7 @@ data class KeywordsRoutesDependencies(
 
 fun Route.keywordsRoutes(dependencies: KeywordsRoutesDependencies) = with(dependencies) {
     get<KeywordsApi> {
-        val overviews = listKeywordOverviewsUseCase(Pagination(limit = 1000))
+        val overviews = listKeywordOverviewsUseCase(Pagination(limit = 0))
         call.respond(KeywordsResponse(overviews.map { it.toKeywordResponse() }))
     }
     post<KeywordsApi, TrackKeywordRequest> { _, request ->

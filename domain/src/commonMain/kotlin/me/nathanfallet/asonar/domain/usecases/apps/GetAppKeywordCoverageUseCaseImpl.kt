@@ -20,7 +20,7 @@ class GetAppKeywordCoverageUseCaseImpl(
 
     override suspend fun invoke(appId: Long): AppKeywordCoverage? {
         val app = appsRepository.get(appId) ?: return null
-        val keywords = keywordsRepository.list(Pagination(limit = 1000))
+        val keywords = keywordsRepository.list(Pagination(limit = 0))
             .filter { it.store == app.store }
         val entries = keywords.map { keyword ->
             // newest-first history; latest reading is the current standing, reversed for the graph.

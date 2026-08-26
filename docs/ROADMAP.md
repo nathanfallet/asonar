@@ -85,6 +85,13 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
 
 ## Les 5 chantiers sont livrés — reste (backlog)
 
+- **📄 Vraie pagination des mots-clés** (⚠️ à faire proprement) : aujourd'hui la liste de mots-clés est chargée
+  **sans limite** (`Pagination(limit = 0)` sur la page web, l'API, le MCP `list_keywords`, opportunités,
+  couverture) — un pansement le temps d'avoir des milliers de mots-clés sur une instance locale. À remplacer par
+  une vraie pagination, mais **pensée avec le tableau triable/filtrable** : un tri/filtre client-side exige
+  toutes les lignes ; une pagination server-side naïve renverrait « la moitié des données » et casserait le tri.
+  Donc soit tri+filtre+pagination **tous server-side et cohérents**, soit on garde le chargement complet tant que
+  ça tient. Ne pas bâcler (une pagination mal faite = pire que pas de pagination).
 - **⚡ Audit perfs SQL / index** (prioritaire, la page app commence à ramer) : passer toutes les requêtes en
   `EXPLAIN`, vérifier les index (les colonnes de filtre/jointure : `keywordId`, `appId`, `capturedAt`, les
   uniques `term+store+country` / `store+storeAppId`), traquer les **N+1** sur `/apps/{id}` (couverture +

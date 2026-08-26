@@ -13,7 +13,7 @@ class GetKeywordOpportunitiesUseCaseImpl(
 
     override suspend fun invoke(appId: Long): List<KeywordOpportunity>? {
         val app = appsRepository.get(appId) ?: return null
-        return keywordsRepository.list(Pagination(limit = 1000))
+        return keywordsRepository.list(Pagination(limit = 0))
             .filter { it.store == app.store }
             .mapNotNull { scoreKeywordOpportunityUseCase(it.id, appId) }
             // Best opportunity first; keywords we couldn't score (no score) sink to the bottom.
