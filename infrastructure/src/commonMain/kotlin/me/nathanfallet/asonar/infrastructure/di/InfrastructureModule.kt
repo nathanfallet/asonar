@@ -96,5 +96,6 @@ val Application.infrastructureModule: Module
             single<RankSnapshotsRepository> { RankSnapshotsDatabaseRepository(get()) }
             single<TopAppSnapshotsRepository> { TopAppSnapshotsDatabaseRepository(get()) }
             single<AppRatingSnapshotsRepository> { AppRatingSnapshotsDatabaseRepository(get()) }
+            single<KeywordSignalsRepository> { KeywordSignalsDatabaseRepository(get()) }
         }
     }

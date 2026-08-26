@@ -10,6 +10,7 @@ import me.nathanfallet.asonar.presentation.routes.apps.appCoverageRoutes
 import me.nathanfallet.asonar.presentation.routes.apps.appRatingsRoutes
 import me.nathanfallet.asonar.presentation.routes.apps.appsRoutes
 import me.nathanfallet.asonar.presentation.routes.health.healthRoutes
+import me.nathanfallet.asonar.presentation.routes.keywords.keywordOpportunitiesRoutes
 import me.nathanfallet.asonar.presentation.routes.keywords.keywordsRoutes
 import me.nathanfallet.asonar.presentation.routes.web.appsWebRoutes
 import me.nathanfallet.asonar.presentation.routes.web.webRoutes
@@ -36,6 +37,7 @@ fun Application.configureRouting() {
         appRatingsRoutes(get())
         appCoverageRoutes(get())
         keywordsRoutes(get())
+        keywordOpportunitiesRoutes(get())
 
         // Server-rendered web UI + its assets
         webRoutes(get())

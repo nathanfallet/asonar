@@ -10,8 +10,11 @@ import me.nathanfallet.asonar.domain.models.apps.AppKeywordCoverage
 import me.nathanfallet.asonar.domain.models.apps.CoverageSummary
 import me.nathanfallet.asonar.domain.models.apps.KeywordCoverageEntry
 import me.nathanfallet.asonar.domain.models.apps.RankPoint
+import me.nathanfallet.asonar.domain.models.keywords.KeywordOpportunity
+import me.nathanfallet.asonar.domain.models.keywords.OpportunityVerdict
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppKeywordCoverageUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.ListAppsUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.GetKeywordOpportunitiesUseCase
 import me.nathanfallet.asonar.presentation.views.*
 import kotlin.math.max
 import kotlin.math.round
@@ -21,9 +24,10 @@ import kotlin.time.Instant
 data class AppsWebRoutesDependencies(
     val listAppsUseCase: ListAppsUseCase,
     val getAppKeywordCoverageUseCase: GetAppKeywordCoverageUseCase,
+    val getKeywordOpportunitiesUseCase: GetKeywordOpportunitiesUseCase,
 )
 
-/** The "Apps" tab: pick an app, then see its ranking coverage (stats + chart + table). */
+/** The "Apps" tab: pick an app, then see its recommendations + ranking coverage (stats + chart + table). */
 fun Route.appsWebRoutes(dependencies: AppsWebRoutesDependencies) = with(dependencies) {
     get("/apps") {
         val apps = listAppsUseCase().map { AppOptionView(it.id, it.name, it.store.name, it.storeAppId) }
@@ -32,12 +36,14 @@ fun Route.appsWebRoutes(dependencies: AppsWebRoutesDependencies) = with(dependen
         )
     }
     get("/apps/{id}") {
-        val coverage = call.parameters["id"]?.toLongOrNull()?.let { getAppKeywordCoverageUseCase(it) }
+        val id = call.parameters["id"]?.toLongOrNull()
+        val coverage = id?.let { getAppKeywordCoverageUseCase(it) }
         if (coverage == null) {
             call.respond(HttpStatusCode.NotFound, "App not found")
             return@get
         }
-        call.respond(FreeMarkerContent("app.ftl", mapOf("view" to coverage.toCoverageView())))
+        val opportunities = getKeywordOpportunitiesUseCase(id).orEmpty()
+        call.respond(FreeMarkerContent("app.ftl", mapOf("view" to coverage.toCoverageView(opportunities))))
     }
 }
 
@@ -57,7 +63,7 @@ private val PALETTE = listOf(
     "#48d1cc", "#ff9f43", "#a0e57c", "#ff7ab6", "#7ce0d3",
 )
 
-private fun AppKeywordCoverage.toCoverageView(): AppCoverageView {
+private fun AppKeywordCoverage.toCoverageView(opportunities: List<KeywordOpportunity>): AppCoverageView {
     // One coloured line per keyword that has at least one ranked reading, over a shared time axis.
     val series = entries.mapNotNull { entry ->
         val points =
@@ -78,7 +84,27 @@ private fun AppKeywordCoverage.toCoverageView(): AppCoverageView {
         summary = summary.toSummaryView(),
         chartJson = Serialization.json.encodeToString(chartData),
         hasChart = series.isNotEmpty(),
+        recommendations = opportunities.map { it.toRecommendationRow() },
         rows = entries.map { it.toRow() },
+    )
+}
+
+private fun KeywordOpportunity.toRecommendationRow(): RecommendationRowView {
+    val (label, css) = when (verdict) {
+        OpportunityVerdict.YES -> "Yes" to "yes"
+        OpportunityVerdict.YES_BUT -> "Yes but" to "yesbut"
+        OpportunityVerdict.NO -> "No" to "no"
+        OpportunityVerdict.RESERVE -> "Réserve" to "reserve"
+        OpportunityVerdict.UNKNOWN -> "?" to "unknown"
+    }
+    return RecommendationRowView(
+        keywordId = keyword.id,
+        term = keyword.term,
+        country = keyword.country,
+        verdictLabel = label,
+        verdictClass = css,
+        scoreLabel = score?.toString() ?: "—",
+        comment = comment,
     )
 }
 

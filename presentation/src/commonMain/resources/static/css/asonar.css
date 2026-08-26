@@ -568,6 +568,11 @@ html, body {
     margin-bottom: 18px;
 }
 
+/* Same gap below the recommendations card as elsewhere on the page. */
+.recos-card {
+    margin-bottom: 18px;
+}
+
 .rank-chart {
     position: relative;
     padding: 14px 16px 10px;
@@ -674,6 +679,48 @@ html, body {
 
 .chart-leg.off .chart-leg-dot {
     background: var(--muted) !important;
+}
+
+/* Recommendations: opportunity verdict pills */
+.verdict {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.verdict-yes {
+    color: #06251a;
+    background: var(--accent);
+}
+
+.verdict-yesbut {
+    color: #2a2000;
+    background: #f6c453;
+}
+
+.verdict-no {
+    color: #fff;
+    background: #ff6b6b;
+}
+
+.verdict-reserve {
+    color: var(--muted);
+    background: var(--panel-2);
+    border-color: var(--line);
+}
+
+.verdict-unknown {
+    color: var(--muted);
+    background: var(--panel-2);
+    border-color: var(--line);
+}
+
+.opp-why {
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 /* App coverage: rank pills + rank-history sparkline */

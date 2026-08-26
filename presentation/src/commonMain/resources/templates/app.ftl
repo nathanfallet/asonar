@@ -58,6 +58,34 @@
         </div>
     </#if>
 
+    <#if (view.recommendations?size > 0)>
+        <div class="card recos-card">
+            <div class="card-head">Recommandations <span class="chip">quels mots-clés viser</span></div>
+            <table class="kw-table">
+                <thead>
+                <tr>
+                    <th>Mot-clé</th>
+                    <th>Pays</th>
+                    <th>Verdict</th>
+                    <th>Score</th>
+                    <th>Pourquoi</th>
+                </tr>
+                </thead>
+                <tbody>
+                <#list view.recommendations as o>
+                    <tr>
+                        <td class="term"><a class="row-link" href="/keywords/${o.keywordId}">${o.term}</a></td>
+                        <td class="country">${o.country}</td>
+                        <td><span class="verdict verdict-${o.verdictClass}">${o.verdictLabel}</span></td>
+                        <td class="mono">${o.scoreLabel}</td>
+                        <td class="muted opp-why">${o.comment}</td>
+                    </tr>
+                </#list>
+                </tbody>
+            </table>
+        </div>
+    </#if>
+
     <div class="card">
         <div class="card-head">Couverture de ranking</div>
         <#if (view.rows?size > 0)>

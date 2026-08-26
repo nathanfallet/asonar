@@ -22,16 +22,16 @@ La boucle cible :
 Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre ».
 
 - **Statut : App Store = FAIT de bout en bout** (fetch → persiste → affiche), testé live.
-  - `AppStoreSubtitleSource` (Ktor `HttpClient`, GET page produit, **zéro browser**, sous-titre **localisé
-    par pays** via `/{pays}/app/id{adamId}`, extraction de l'unique `<p class="subtitle …">`, **retry 3×** +
-    **`logger.warn` sur échec** pour ne jamais avaler une erreur). Interface `AppSubtitleSource` + DI.
-  - **Branché dans le fetch** (`FetchKeywordUseCaseImpl`) avec **fallback intelligent** :
-    `app.subtitle ?: subtitleSource.getSubtitle(...)` → si la recherche porte déjà le sous-titre (cas futur
-    Play), pas de 2e appel ; sinon (cas iTunes) on scrape la page.
-  - **Persisté** : colonne `subtitle` sur `TopAppSnapshots` (⚠️ `ALTER TABLE` manuel sur la base existante,
-    `SchemaUtils.create` n'ALTER pas — migration propre toujours à faire). **Exposé** API/MCP
-    (`TopAppSnapshotResponse.subtitle`) + **web** (sous le nom de l'app sur le détail mot-clé). UTF-8 OK.
-  - Vérifié : top-10 « pizza »/FR → 10/10 sous-titres récupérés + affichés.
+    - `AppStoreSubtitleSource` (Ktor `HttpClient`, GET page produit, **zéro browser**, sous-titre **localisé
+      par pays** via `/{pays}/app/id{adamId}`, extraction de l'unique `<p class="subtitle …">`, **retry 3×** +
+      **`logger.warn` sur échec** pour ne jamais avaler une erreur). Interface `AppSubtitleSource` + DI.
+    - **Branché dans le fetch** (`FetchKeywordUseCaseImpl`) avec **fallback intelligent** :
+      `app.subtitle ?: subtitleSource.getSubtitle(...)` → si la recherche porte déjà le sous-titre (cas futur
+      Play), pas de 2e appel ; sinon (cas iTunes) on scrape la page.
+    - **Persisté** : colonne `subtitle` sur `TopAppSnapshots` (⚠️ `ALTER TABLE` manuel sur la base existante,
+      `SchemaUtils.create` n'ALTER pas — migration propre toujours à faire). **Exposé** API/MCP
+      (`TopAppSnapshotResponse.subtitle`) + **web** (sous le nom de l'app sur le détail mot-clé). UTF-8 OK.
+    - Vérifié : top-10 « pizza »/FR → 10/10 sous-titres récupérés + affichés.
 - **Source — décision à trancher :**
     - ✅ **Ce que le lookup officiel donne** (`itunes.apple.com/lookup?id={adamId}&country={pays}`, vérifié
       en listant tous les champs) : **titre** (`trackName`) + **description longue** (`description`) + genres,
@@ -61,16 +61,25 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
 - Vérifié live : NutriMaxing ranké #50 « quoi manger », #141 « what to eat », pas ranké pizza/cooking
   fever/tacos ; graphe testé avec un historique injecté puis nettoyé.
 
-### 3. Moteur de scoring de pertinence — LE CERVEAU
+### 3. Moteur de scoring — LE CERVEAU — ✅ FAIT (Option B)
 
-- Tourne **en background au fetch**. Applique les règles `app-aso` (Search Term Value, long-tail gagnable,
-  popularité > seuil, compétition, usage du terme en titre/sous-titre…).
-- Sortie : **verdict / score de pertinence par mot-clé**.
+- Codifie le raccourci `app-aso` : croise **usage-titre/sous-titre du top-10** × **vélocité d'avis 30j**,
+  pondéré par **NOTRE vélocité vs la leur** (`velocityAdvantage > 1` = on peut les dépasser). **Pertinence
+  volontairement hors scope** (gérée par le choix des mots-clés traqués).
+- Sortie par mot-clé : **verdict** (Yes / Yes but / No / Réserve / Unknown) + **score 0-100** + breakdown + commentaire.
+- **Option B — perf** : les signaux chers (usage-titre, vélocité médiane top-10, nb résultats) sont **précalculés
+  au fetch** (table `KeywordSignalSnapshots`) → le scoring à la lecture est cheap **et** on peut re-tuner les
+  poids/seuils **sans re-fetch** (`OpportunityScorer` = fonction pure, unit-testée : 7 tests).
+- ⏭️ Scale futur : cacher notre vélocité par marché dans l'agrégat + éventuellement matérialiser le score final
+  pour trier 10k en SQL.
 
-### 4. Tools MCP de reco
+### 4. Tools MCP de reco — ✅ FAIT
 
-- Expose 2 + 3 pour que l'agent pilote la boucle : **bulk add** de mots-clés → récupère les recommandations
-  (« vise ceux-là, laisse tomber ceux-là »).
+- **`get_keyword_opportunities(appId)`** (MCP) + **`GET /api/keyword-opportunities?appId=`** + carte web
+  **« Recommandations »** sur la page Apps (verdict + score + pourquoi, triés). 15 tools MCP au total.
+- **Suggérer de NOUVEAUX mots-clés = le job de l'agent** (via MCP, il connaît l'app) — notre moteur dit juste,
+  parmi les traqués, lesquels valent le coup. Vérifié live : cooking fever → Yes (45), pizza → No (mur), pop-5 →
+  Réserve.
 
 ### 5. Onglet « Apps » (web) — ✅ en grande partie fait (dans #2)
 

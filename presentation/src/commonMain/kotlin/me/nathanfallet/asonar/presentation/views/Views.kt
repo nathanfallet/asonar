@@ -80,7 +80,19 @@ data class AppCoverageView(
     val summary: CoverageSummaryView,
     val chartJson: String, // JSON consumed by /js/chart.js
     val hasChart: Boolean,
+    val recommendations: List<RecommendationRowView>,
     val rows: List<CoverageRowView>,
+)
+
+/** One scored keyword in the recommendations card: verdict + score + the "why". */
+data class RecommendationRowView(
+    val keywordId: Long,
+    val term: String,
+    val country: String,
+    val verdictLabel: String,
+    val verdictClass: String, // css modifier: yes / yesbut / no / reserve / unknown
+    val scoreLabel: String,
+    val comment: String,
 )
 
 /** AppFigures-style summary cards above the chart. */
