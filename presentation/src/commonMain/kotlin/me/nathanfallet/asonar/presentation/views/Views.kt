@@ -91,6 +91,7 @@ data class RecommendationRowView(
     val country: String,
     val verdictLabel: String,
     val verdictClass: String, // css modifier: yes / yesbut / no / reserve / unknown
+    val verdictOrder: Int,    // sort key: YES=0 … UNKNOWN=4
     val scoreLabel: String,
     val comment: String,
 )
@@ -117,6 +118,7 @@ data class CoverageRowView(
     val country: String,
     val popularityLabel: String,
     val rankLabel: String,
+    val rankSort: Int,       // sort key: the rank, or a large number when not ranked
     val ranked: Boolean,
     val sparkPoints: String, // SVG polyline points, "" when there isn't enough history
     val capturedAt: String,

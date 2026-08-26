@@ -61,14 +61,14 @@
     <#if (view.recommendations?size > 0)>
         <div class="card recos-card">
             <div class="card-head">Recommandations <span class="chip">quels mots-clés viser</span></div>
-            <table class="kw-table">
+            <table class="kw-table js-table">
                 <thead>
                 <tr>
                     <th>Mot-clé</th>
-                    <th>Pays</th>
-                    <th>Verdict</th>
+                    <th class="filter">Pays</th>
+                    <th class="filter">Verdict</th>
                     <th>Score</th>
-                    <th>Pourquoi</th>
+                    <th class="nosort">Pourquoi</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -76,7 +76,8 @@
                     <tr>
                         <td class="term"><a class="row-link" href="/keywords/${o.keywordId}">${o.term}</a></td>
                         <td class="country">${o.country}</td>
-                        <td><span class="verdict verdict-${o.verdictClass}">${o.verdictLabel}</span></td>
+                        <td data-sort="${o.verdictOrder}"><span
+                                    class="verdict verdict-${o.verdictClass}">${o.verdictLabel}</span></td>
                         <td class="mono">${o.scoreLabel}</td>
                         <td class="muted opp-why">${o.comment}</td>
                     </tr>
@@ -89,14 +90,14 @@
     <div class="card">
         <div class="card-head">Couverture de ranking</div>
         <#if (view.rows?size > 0)>
-            <table class="kw-table">
+            <table class="kw-table js-table">
                 <thead>
                 <tr>
                     <th>Mot-clé</th>
-                    <th>Pays</th>
+                    <th class="filter">Pays</th>
                     <th>Popularité</th>
                     <th>Rang</th>
-                    <th class="col-spark">Historique</th>
+                    <th class="nosort col-spark">Historique</th>
                     <th class="col-when">Mesuré</th>
                 </tr>
                 </thead>
@@ -106,7 +107,7 @@
                         <td class="term"><a class="row-link" href="/keywords/${r.keywordId}">${r.term}</a></td>
                         <td class="country">${r.country}</td>
                         <td class="mono">${r.popularityLabel}</td>
-                        <td>
+                        <td data-sort="${r.rankSort}">
                             <#if r.ranked>
                                 <span class="rank-pill ranked">${r.rankLabel}</span>
                             <#else>

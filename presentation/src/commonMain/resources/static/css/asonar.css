@@ -681,6 +681,48 @@ html, body {
     background: var(--muted) !important;
 }
 
+/* Reusable sortable/filterable tables (js-table + /js/table.js) */
+.table-tools {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-2);
+}
+
+.table-search {
+    flex: 1;
+    min-width: 180px;
+}
+
+.table-filter {
+    cursor: pointer;
+}
+
+.th-sort {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.th-sort:hover {
+    color: var(--text);
+}
+
+.th-sort.sort-asc::after {
+    content: " ▲";
+    font-size: 9px;
+    color: var(--accent);
+}
+
+.th-sort.sort-desc::after {
+    content: " ▼";
+    font-size: 9px;
+    color: var(--accent);
+}
+
 /* Recommendations: opportunity verdict pills */
 .verdict {
     font-size: 12px;

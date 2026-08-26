@@ -90,12 +90,12 @@ private fun AppKeywordCoverage.toCoverageView(opportunities: List<KeywordOpportu
 }
 
 private fun KeywordOpportunity.toRecommendationRow(): RecommendationRowView {
-    val (label, css) = when (verdict) {
-        OpportunityVerdict.YES -> "Yes" to "yes"
-        OpportunityVerdict.YES_BUT -> "Yes but" to "yesbut"
-        OpportunityVerdict.NO -> "No" to "no"
-        OpportunityVerdict.RESERVE -> "Réserve" to "reserve"
-        OpportunityVerdict.UNKNOWN -> "?" to "unknown"
+    val (label, css, order) = when (verdict) {
+        OpportunityVerdict.YES -> Triple("Yes", "yes", 0)
+        OpportunityVerdict.YES_BUT -> Triple("Yes but", "yesbut", 1)
+        OpportunityVerdict.RESERVE -> Triple("Réserve", "reserve", 2)
+        OpportunityVerdict.NO -> Triple("No", "no", 3)
+        OpportunityVerdict.UNKNOWN -> Triple("?", "unknown", 4)
     }
     return RecommendationRowView(
         keywordId = keyword.id,
@@ -103,6 +103,7 @@ private fun KeywordOpportunity.toRecommendationRow(): RecommendationRowView {
         country = keyword.country,
         verdictLabel = label,
         verdictClass = css,
+        verdictOrder = order,
         scoreLabel = score?.toString() ?: "—",
         comment = comment,
     )
@@ -129,6 +130,7 @@ private fun KeywordCoverageEntry.toRow() = CoverageRowView(
     country = keyword.country,
     popularityLabel = popularity?.toString() ?: "—",
     rankLabel = rank?.let { "#$it" } ?: "—",
+    rankSort = rank ?: 99_999,
     ranked = rank != null,
     sparkPoints = sparkline(history),
     capturedAt = capturedAt.formatted(),

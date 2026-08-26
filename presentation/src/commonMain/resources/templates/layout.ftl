@@ -24,6 +24,7 @@
     <#nested>
 </main>
 <footer class="footer">asonar · instance locale</footer>
+<script src="/js/table.js"></script>
 </body>
 </html>
 </#macro>
