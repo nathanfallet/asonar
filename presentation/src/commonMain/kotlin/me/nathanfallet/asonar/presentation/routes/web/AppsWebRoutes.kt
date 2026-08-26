@@ -75,7 +75,8 @@ private fun AppKeywordCoverage.toCoverageView(opportunities: List<KeywordOpportu
             entry.history.mapNotNull { p -> p.rank?.let { ChartPoint(p.capturedAt.toEpochMilliseconds(), it) } }
         if (points.isEmpty()) null else entry to points
     }.mapIndexed { index, (entry, points) ->
-        ChartSeries(entry.keyword.term, PALETTE[index % PALETTE.size], points)
+        // "term · COUNTRY" so the same term across storefronts stays distinguishable in the legend + tooltip.
+        ChartSeries("${entry.keyword.term} · ${entry.keyword.country}", PALETTE[index % PALETTE.size], points)
     }
     val chartData = ChartData(yInvert = true, series = series)
 
