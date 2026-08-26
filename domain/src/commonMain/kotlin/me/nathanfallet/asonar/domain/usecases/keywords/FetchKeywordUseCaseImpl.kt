@@ -22,6 +22,7 @@ class FetchKeywordUseCaseImpl(
     private val popularitySources: List<KeywordPopularitySource>,
     private val appSearchSources: List<AppSearchSource>,
     private val appSubtitleSources: List<AppSubtitleSource>,
+    private val opportunityScorers: List<OpportunityScorer>,
     private val recordKeywordRunUseCase: RecordKeywordRunUseCase,
     private val getAppRatingHistoryUseCase: GetAppRatingHistoryUseCase,
     private val keywordSignalsRepository: KeywordSignalsRepository,
@@ -118,10 +119,11 @@ class FetchKeywordUseCaseImpl(
         // derived from the top-of-results. Runs after the record so each velocity regression includes
         // this run's freshly-stored ratings.
         if (fetchRanking) {
+            val scorer = opportunityScorers.firstOrNull { it.store == keyword.store }
             val competitors = topApps.map { app ->
                 CompetitorSignal(
                     position = app.position,
-                    titleFactor = OpportunityScorer.titleFactor(keyword.term, app.appName, app.subtitle),
+                    titleFactor = scorer?.titleFactor(keyword.term, app.appName, app.subtitle) ?: 0.0,
                     ratingCount = app.ratingCount,
                     ratingsPer30d = getAppRatingHistoryUseCase(keyword.store, app.storeAppId, keyword.country)
                         .ratingsPer30d,

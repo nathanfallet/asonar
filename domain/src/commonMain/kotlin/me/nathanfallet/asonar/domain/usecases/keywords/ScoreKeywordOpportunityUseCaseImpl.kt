@@ -18,11 +18,13 @@ class ScoreKeywordOpportunityUseCaseImpl(
     private val keywordSignalsRepository: KeywordSignalsRepository,
     private val rankSnapshotsRepository: RankSnapshotsRepository,
     private val getAppRatingHistoryUseCase: GetAppRatingHistoryUseCase,
+    private val opportunityScorers: List<OpportunityScorer>,
 ) : ScoreKeywordOpportunityUseCase {
 
     override suspend fun invoke(keywordId: Long, appId: Long): KeywordOpportunity? {
         val keyword = keywordsRepository.get(keywordId) ?: return null
         val app = appsRepository.get(appId) ?: return null
+        val scorer = opportunityScorers.firstOrNull { it.store == keyword.store } ?: return null
 
         val signals = keywordSignalsRepository.getLatestForKeyword(keywordId)
         val competitors = signals?.competitors.orEmpty()
@@ -32,7 +34,7 @@ class ScoreKeywordOpportunityUseCaseImpl(
             .ratingsPer30d
 
         val totalResults = signals?.totalResults ?: ourRankSnapshot?.totalResults
-        val result = OpportunityScorer.score(
+        val result = scorer.score(
             OpportunityScorer.Inputs(
                 popularity = popularity,
                 competitors = competitors,
@@ -51,7 +53,7 @@ class ScoreKeywordOpportunityUseCaseImpl(
             top10MedianRatingsPer30d = result.top10MedianVelocity,
             velocityAdvantage = result.velocityAdvantage,
             wallStrength = result.wallStrength,
-            top10TitleUsage = OpportunityScorer.titleShare(competitors),
+            top10TitleUsage = scorer.titleShare(competitors),
             totalResults = totalResults,
             comment = comment(
                 competitors,

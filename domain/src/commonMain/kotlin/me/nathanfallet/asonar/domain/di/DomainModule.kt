@@ -22,6 +22,8 @@ val domainModule: Module = module {
     single<GetAppRatingHistoryUseCase> { GetAppRatingHistoryUseCaseImpl(get()) }
 
     // Keywords
+    // Opportunity scorers — one per store (selected via getAll + firstOrNull { it.store == ... }).
+    single<OpportunityScorer> { AppStoreOpportunityScorer() }
     single<ListKeywordOverviewsUseCase> { ListKeywordOverviewsUseCaseImpl(get(), get()) }
     single<GetKeywordDetailUseCase> { GetKeywordDetailUseCaseImpl(get(), get(), get(), get(), get(), get()) }
     single<ScoreKeywordOpportunityUseCase> {
@@ -31,7 +33,8 @@ val domainModule: Module = module {
             get(),
             get(),
             get(),
-            get()
+            get(),
+            getAll()
         )
     }
     single<GetKeywordOpportunitiesUseCase> { GetKeywordOpportunitiesUseCaseImpl(get(), get(), get()) }
@@ -45,6 +48,6 @@ val domainModule: Module = module {
     // Runs — internal: written by the fetch pipeline, never exposed to the API/MCP/web.
     single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get(), get()) }
     single<FetchKeywordUseCase> {
-        FetchKeywordUseCaseImpl(get(), get(), getAll(), getAll(), getAll(), get(), get(), get(), get(), get())
+        FetchKeywordUseCaseImpl(get(), get(), getAll(), getAll(), getAll(), getAll(), get(), get(), get(), get(), get())
     }
 }

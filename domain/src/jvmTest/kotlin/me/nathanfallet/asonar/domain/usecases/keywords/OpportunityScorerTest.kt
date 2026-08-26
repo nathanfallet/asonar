@@ -8,6 +8,8 @@ import kotlin.test.assertTrue
 
 class OpportunityScorerTest {
 
+    private val scorer = AppStoreOpportunityScorer()
+
     // position, title factor (1 title / .5 subtitle / 0 none), total ratings, velocity (ratings/30d)
     private fun c(pos: Int, title: Double, reviews: Int? = null, vel: Int? = null) =
         CompetitorSignal(pos, title, reviews, vel)
@@ -19,7 +21,7 @@ class OpportunityScorerTest {
         total: Int? = 1000,
         label: String = "",
     ): OpportunityScorer.Result {
-        val r = OpportunityScorer.score(OpportunityScorer.Inputs(pop, competitors, ourVel, total))
+        val r = scorer.score(OpportunityScorer.Inputs(pop, competitors, ourVel, total))
         println("[scorer] ${label.padEnd(34)} verdict=${r.verdict} score=${r.score} wall=${(r.wallStrength * 100).toInt()}%")
         return r
     }
@@ -105,10 +107,10 @@ class OpportunityScorerTest {
 
     @Test
     fun titleFactor_matchesWordsAccentInsensitive() {
-        assertEquals(1.0, OpportunityScorer.titleFactor("quoi manger", "Quoi Manger ?", null))
-        assertEquals(1.0, OpportunityScorer.titleFactor("café", "Bon Café, Super Café", null))
-        assertEquals(0.5, OpportunityScorer.titleFactor("pizza", "Smart Cook", "le meilleur pizza maker"))
-        assertEquals(0.0, OpportunityScorer.titleFactor("pizza", "Cooking Fever", "jeu de cuisine"))
+        assertEquals(1.0, scorer.titleFactor("quoi manger", "Quoi Manger ?", null))
+        assertEquals(1.0, scorer.titleFactor("café", "Bon Café, Super Café", null))
+        assertEquals(0.5, scorer.titleFactor("pizza", "Smart Cook", "le meilleur pizza maker"))
+        assertEquals(0.0, scorer.titleFactor("pizza", "Cooking Fever", "jeu de cuisine"))
     }
 
     // A noisy least-squares slope can yield a negative velocity — it must floor to 0, never feed a
@@ -125,8 +127,8 @@ class OpportunityScorerTest {
 
     @Test
     fun wallStrength_zeroWhenTopDoesNotUseTerm() {
-        assertEquals(0.0, OpportunityScorer.wallStrength(listOf(c(1, 0.0, reviews = 99_999))))
-        assertTrue(OpportunityScorer.wallStrength(listOf(c(1, 1.0, reviews = 80_000))) > 0.9)
+        assertEquals(0.0, scorer.wallStrength(listOf(c(1, 0.0, reviews = 99_999))))
+        assertTrue(scorer.wallStrength(listOf(c(1, 1.0, reviews = 80_000))) > 0.9)
     }
 
 }
