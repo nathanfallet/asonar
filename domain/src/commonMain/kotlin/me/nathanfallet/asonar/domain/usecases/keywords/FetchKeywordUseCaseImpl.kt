@@ -34,71 +34,73 @@ class FetchKeywordUseCaseImpl(
         val keyword = keywordsRepository.get(keywordId) ?: return
         val now = Clock.System.now()
 
-        // Age-gating — the snapshots already carry capturedAt, so this needs no new state. Use the two
-        // dates separately: the newest of the two = "last fetch"; popularity's own date drives its gate.
-        val lastPopularityAt = popularitySnapshotsRepository.getLatestForKeyword(keywordId)?.capturedAt
+        // Independent age gates — the snapshots already carry capturedAt (no new state). Ranking and
+        // popularity are refreshed on their OWN dates, independently of each other: if popularity is
+        // still fresh but the ranking is stale (or failed last time) we refetch the ranking alone, and
+        // vice-versa. We only do nothing when both are within their windows.
         val lastRankingAt = topAppSnapshotsRepository.listLatestForKeyword(keywordId).firstOrNull()?.capturedAt
-
-        // Skip entirely if anything was fetched for this keyword within the last hour.
-        val lastFetchAt = listOfNotNull(lastPopularityAt, lastRankingAt).maxOrNull()
-        if (lastFetchAt != null && now - lastFetchAt < MIN_REFRESH_INTERVAL) return
+        val lastPopularityAt = popularitySnapshotsRepository.getLatestForKeyword(keywordId)?.capturedAt
+        val fetchRanking = lastRankingAt == null || now - lastRankingAt >= RANKING_MAX_AGE
+        val fetchPopularity = lastPopularityAt == null || now - lastPopularityAt >= POPULARITY_MAX_AGE
+        if (!fetchRanking && !fetchPopularity) return
 
         val capturedAt = now
 
-        // Popularity is the expensive part (ASA via a real browser) and moves slowly — refetch it at
-        // most weekly, keyed on ITS OWN date so daily ranking refreshes never starve it. When skipped,
-        // popularity stays null → RecordKeywordRun keeps the previous snapshot as the latest value.
-        val refetchPopularity = lastPopularityAt == null || now - lastPopularityAt >= POPULARITY_MAX_AGE
-        val popularity = if (refetchPopularity) {
+        // 1) Ranking first (App Store = iTunes; other stores later): the top-of-results, our apps' ranks,
+        //    and the per-competitor signals — all derived from a single search.
+        var topApps = emptyList<TopAppReading>()
+        var appRatings = emptyList<AppRatingReading>()
+        var ranks = emptyList<AppRankReading>()
+        var totalResults: Int? = null
+        if (fetchRanking) {
+            val search = appSearchSources.firstOrNull { it.store == keyword.store }
+                ?.search(keyword.term, keyword.country, SEARCH_LIMIT)
+            val results = search?.apps.orEmpty()
+            totalResults = search?.totalResults
+            val subtitleSource = appSubtitleSources.firstOrNull { it.store == keyword.store }
+            topApps = results.take(TOP_N).mapIndexed { index, app ->
+                TopAppReading(
+                    position = index + 1,
+                    storeAppId = app.storeAppId,
+                    appName = app.name,
+                    // Prefer the subtitle the search already carried (some stores, e.g. Play, include the
+                    // short description in results); only fall back to the dedicated source — an extra
+                    // fetch — when the search didn't provide it (the case for the iTunes API).
+                    subtitle = app.subtitle ?: subtitleSource?.getSubtitle(app.storeAppId, keyword.country),
+                    ratingCount = app.ratingCount,
+                    averageRating = app.averageRating,
+                )
+            }
+            // Ratings for every app seen — recorded per app/store/country (shared across keywords).
+            appRatings = results.map { app ->
+                AppRatingReading(
+                    storeAppId = app.storeAppId,
+                    name = app.name,
+                    ratingCount = app.ratingCount,
+                    averageRating = app.averageRating,
+                )
+            }
+            // Where each of our apps on this store lands in the results.
+            ranks = appsRepository.list()
+                .filter { it.store == keyword.store }
+                .map { app ->
+                    val index = results.indexOfFirst { it.storeAppId == app.storeAppId }
+                    AppRankReading(
+                        appId = app.id,
+                        rank = if (index >= 0) index + 1 else null,
+                        totalResults = totalResults,
+                    )
+                }
+        }
+
+        // 2) Popularity second (the expensive ASA call via a real browser). When skipped it stays null →
+        //    RecordKeywordRun keeps the previous popularity snapshot as the latest value.
+        val popularity = if (fetchPopularity) {
             popularitySources.firstOrNull { it.store == keyword.store }
                 ?.getPopularity(keyword.term, keyword.country)
         } else {
             null
         }
-
-        // Ranked results (App Store = iTunes; other stores later).
-        val search = appSearchSources.firstOrNull { it.store == keyword.store }
-            ?.search(keyword.term, keyword.country, SEARCH_LIMIT)
-        val results = search?.apps.orEmpty()
-
-        // Subtitle source for this store (App Store today; others as they're added).
-        val subtitleSource = appSubtitleSources.firstOrNull { it.store == keyword.store }
-
-        val topApps = results.take(TOP_N).mapIndexed { index, app ->
-            TopAppReading(
-                position = index + 1,
-                storeAppId = app.storeAppId,
-                appName = app.name,
-                // Prefer the subtitle the search already carried (some stores, e.g. Play, include the
-                // short description in results); only fall back to the dedicated source — an extra
-                // fetch — when the search didn't provide it (the case for the iTunes API).
-                subtitle = app.subtitle ?: subtitleSource?.getSubtitle(app.storeAppId, keyword.country),
-                ratingCount = app.ratingCount,
-                averageRating = app.averageRating,
-            )
-        }
-
-        // Ratings for every app seen — recorded per app/store/country (shared across keywords).
-        val appRatings = results.map { app ->
-            AppRatingReading(
-                storeAppId = app.storeAppId,
-                name = app.name,
-                ratingCount = app.ratingCount,
-                averageRating = app.averageRating,
-            )
-        }
-
-        // Where each of our apps on this store lands in the results.
-        val ranks = appsRepository.list()
-            .filter { it.store == keyword.store }
-            .map { app ->
-                val index = results.indexOfFirst { it.storeAppId == app.storeAppId }
-                AppRankReading(
-                    appId = app.id,
-                    rank = if (index >= 0) index + 1 else null,
-                    totalResults = search?.totalResults,
-                )
-            }
 
         recordKeywordRunUseCase(
             KeywordRunPayload(
@@ -113,26 +115,28 @@ class FetchKeywordUseCaseImpl(
             )
         )
 
-        // Precompute the opportunity signals (Option B): the per-competitor title-usage + review
-        // velocity, done here in the background so scoring stays cheap at read time. Runs after the
-        // record so each velocity regression includes this run's freshly-stored ratings.
-        val competitors = topApps.map { app ->
-            CompetitorSignal(
-                position = app.position,
-                titleFactor = OpportunityScorer.titleFactor(keyword.term, app.appName, app.subtitle),
-                ratingCount = app.ratingCount,
-                ratingsPer30d = getAppRatingHistoryUseCase(keyword.store, app.storeAppId, keyword.country)
-                    .ratingsPerDay?.let { (it * 30).roundToInt() },
+        // Recompute the opportunity signals (Option B) only when we refreshed the ranking — they're
+        // derived from the top-of-results. Runs after the record so each velocity regression includes
+        // this run's freshly-stored ratings.
+        if (fetchRanking) {
+            val competitors = topApps.map { app ->
+                CompetitorSignal(
+                    position = app.position,
+                    titleFactor = OpportunityScorer.titleFactor(keyword.term, app.appName, app.subtitle),
+                    ratingCount = app.ratingCount,
+                    ratingsPer30d = getAppRatingHistoryUseCase(keyword.store, app.storeAppId, keyword.country)
+                        .ratingsPerDay?.let { (it * 30).roundToInt() },
+                )
+            }
+            keywordSignalsRepository.create(
+                KeywordSignalsPayload(
+                    keywordId = keywordId,
+                    competitors = competitors,
+                    totalResults = totalResults,
+                    capturedAt = capturedAt,
+                )
             )
         }
-        keywordSignalsRepository.create(
-            KeywordSignalsPayload(
-                keywordId = keywordId,
-                competitors = competitors,
-                totalResults = search?.totalResults,
-                capturedAt = capturedAt,
-            )
-        )
     }
 
     companion object {
@@ -140,8 +144,8 @@ class FetchKeywordUseCaseImpl(
         private const val SEARCH_LIMIT = 200
         private const val TOP_N = 10
 
-        /** Don't refetch a keyword more often than this (adjustable). */
-        private val MIN_REFRESH_INTERVAL = 1.hours
+        /** Refetch the ranking (top-of-results + our ranks) at most this often, on its own date (adjustable). */
+        private val RANKING_MAX_AGE = 1.hours
 
         /** Refetch the (expensive) popularity at most this often, on its own snapshot date (adjustable). */
         private val POPULARITY_MAX_AGE = 7.days
