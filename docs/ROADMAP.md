@@ -9,8 +9,7 @@ La boucle cible :
 1. Un agent IA (via **MCP**) balance plein de mots-clés candidats (il est bon pour trouver des termes liés).
 2. asonar les **fetch + analyse en background** au rafraîchissement : popularité, qui rank, qui met le terme
    dans son **titre / sous-titre**, vélocité d'avis (30j).
-3. asonar **score la pertinence automatiquement** (ce qu'un expert ASO fait à la main), selon les règles du
-   skill `app-aso`.
+3. asonar **score la pertinence automatiquement** (ce qu'un expert ASO fait à la main).
 4. Via MCP, l'agent récupère **« ces mots-clés valent le coup, ceux-là non »** + **sur quels mots-clés notre
    app rank / ne rank pas**.
 5. L'agent écrit **titre / sous-titre / descriptions** avec les bons mots-clés.
@@ -58,12 +57,12 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
 - **Onglet « Apps »** (web) : `/apps` (sélecteur) + `/apps/{id}` = tableau ranké/pas-ranké (pills) +
   **sparkline SVG** du rang par mot-clé (meilleur rang = en haut). ⇒ **le chantier #5 est absorbé ici**
   (moins les suggestions, qui dépendent de #3).
-- Vérifié live : NutriMaxing ranké #50 « quoi manger », #141 « what to eat », pas ranké pizza/cooking
-  fever/tacos ; graphe testé avec un historique injecté puis nettoyé.
+- Vérifié live sur une app suivie (rangs relevés + termes non-rangés) ; graphe testé avec un historique
+  injecté puis nettoyé.
 
 ### 3. Moteur de scoring — LE CERVEAU — ✅ FAIT (Option B)
 
-- Codifie le raccourci `app-aso` : croise **usage-titre/sous-titre du top-10** × **vélocité d'avis 30j**,
+- Codifie l'analyse ASO manuelle : croise **usage-titre/sous-titre du top-10** × **vélocité d'avis 30j**,
   pondéré par **NOTRE vélocité vs la leur** (`velocityAdvantage > 1` = on peut les dépasser). **Pertinence
   volontairement hors scope** (gérée par le choix des mots-clés traqués).
 - Sortie par mot-clé : **verdict** (Yes / Yes but / No / Réserve / Unknown) + **score 0-100** + breakdown + commentaire.
@@ -78,18 +77,41 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
 - **`get_keyword_opportunities(appId)`** (MCP) + **`GET /api/keyword-opportunities?appId=`** + carte web
   **« Recommandations »** sur la page Apps (verdict + score + pourquoi, triés). 15 tools MCP au total.
 - **Suggérer de NOUVEAUX mots-clés = le job de l'agent** (via MCP, il connaît l'app) — notre moteur dit juste,
-  parmi les traqués, lesquels valent le coup. Vérifié live : cooking fever → Yes (45), pizza → No (mur), pop-5 →
-  Réserve.
+  parmi les traqués, lesquels valent le coup.
 
-### 5. Onglet « Apps » (web) — ✅ en grande partie fait (dans #2)
+### 5. Onglet « Apps » (web) — ✅ FAIT (dans #2 + #4)
 
-- Sélecteur d'app + tableau de couverture + **graphe d'historique de rang** : livrés avec #2.
-- Reste : afficher les **suggestions** de mots-clés (= sortie du scoring #3) sur cette page.
+- Sélecteur d'app + couverture + **graphe multi-lignes** + carte **Recommandations** (verdicts/scores triés).
 
-## Livré récemment
+## Les 5 chantiers sont livrés — reste (backlog)
 
-- Session-restore Chrome (`--restore-last-session`) + nettoyage des onglets parasites (`BrowserHolder`).
-- Ajout de mot-clé → **refresh auto** (side-effect via le use case).
-- **Largeur** du front (conteneur 1400px, grille `minmax(0,…)` — plus de colonnes coupées).
-- Colonne **« Avis / 30j »** (vélocité de reviews) sur le détail mot-clé + `ratingsPer30d` dans l'API/MCP,
-  avec garde-fou (affiche `—` tant que les snapshots couvrent moins d'1 jour).
+- **Play Store** (multi-store) : sources Play (search/ranking + popularité + short description). Archi prête.
+- **Vraie migration DB** (aujourd'hui `SchemaUtils.create` + `ALTER`/drop manuels).
+- **Scale du scoring** : cacher notre vélocité par marché dans l'agrégat + matérialiser le score pour trier 10k en SQL.
+- **Description via lookup** (API officielle, gratuite) pour nourrir l'analyse.
+
+## Livré récemment (au-delà des 5)
+
+- **Le cerveau — modèle « force de mur »** : `wallStrength` = pondération **position × usage-titre × notes** du
+  top-of-results (un #1 qui n'utilise pas le terme, ou l'utilise avec peu d'avis, = place faible → passable),
+    + **notre vélocité vs la leur** (`velocityAdvantage`). Option B (signaux précalculés au fetch → re-tune des
+      poids **sans re-fetch**). Calibration figée par tests unitaires.
+- **Rafraîchissement — gating par âge** (`FetchKeywordUseCase`) : ranking refetché si `> 1h`, popularité si
+  `> 7j`, **gates INDÉPENDANTS** (sur leur propre date, ordre **ranking → popularité**), seuils = constantes.
+- **Auto-refresh** (`RefreshAppKeywordsUseCase`) : ouvrir la page app (web `/apps/{id}` fire-and-forget) ou le
+  MCP `get_app_coverage` enfile en background les mots-clés **rankés ∪ opportunités (YES/YES_BUT)** — pas No/Réserve,
+  pas « la terre entière » ; le gating les skippe s'ils sont frais.
+- **Composants front réutilisables** : `chart.js` (graphe multi-lignes hover/légende) + `table.js` (tri au clic +
+  filtres par colonne + recherche : `js-table` / `<th class="filter">` / `data-sort`).
+- **Sous-titre App Store** (fetch page produit sans browser, retry + log, persisté + affiché + API/MCP).
+- Session-restore Chrome, ajout mot-clé → refresh auto, largeur front, colonne « Avis / 30j ».
+
+## Notes de calibration (scoring)
+
+- La popularité `5` est le **plancher** de l'index (terme quasi jamais recherché) → un mot-clé à 5 n'est pas une
+  opportunité quelle que soit sa winnability : le garde-fou `pop ≤ 5 → RESERVE` est volontaire. Cibles utiles :
+  ~**10-15** pour démarrer, ~**20-30** ensuite. Privilégier les termes **1-2 mots** (les longs tombent au plancher).
+- **Même terme, opportunité différente selon le storefront** — un mot-clé peut être un mur sur un marché et une
+  brèche sur un autre. Et un terme **en anglais** peut avoir du volume dans un store non-anglophone là où sa
+  traduction locale est au plancher (les stores indexent les traductions comme des mots-clés distincts) → tester
+  plusieurs pays et les deux langues.

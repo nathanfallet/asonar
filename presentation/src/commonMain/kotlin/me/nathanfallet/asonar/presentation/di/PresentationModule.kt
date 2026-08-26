@@ -18,11 +18,11 @@ import org.koin.dsl.module
 val presentationModule: Module = module {
     single { AppsRoutesDependencies(get(), get(), get(), get()) }
     single { AppRatingsRoutesDependencies(get()) }
-    single { AppCoverageRoutesDependencies(get()) }
+    single { AppCoverageRoutesDependencies(get(), get()) }
     single { KeywordsRoutesDependencies(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { KeywordOpportunitiesRoutesDependencies(get()) }
     // The MCP server (single source of the tool catalog: mounted at /mcp and read by the guide page).
     single { mcpServer(get(), get(), get(), get(), get()) }
     single { WebRoutesDependencies(get(), get(), get(), get(), get()) }
-    single { AppsWebRoutesDependencies(get(), get(), get()) }
+    single { AppsWebRoutesDependencies(get(), get(), get(), get()) }
 }

@@ -4,6 +4,7 @@ import io.ktor.http.*
 import io.ktor.server.freemarker.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import me.nathanfallet.asonar.api.Serialization
 import me.nathanfallet.asonar.domain.models.apps.AppKeywordCoverage
@@ -14,6 +15,7 @@ import me.nathanfallet.asonar.domain.models.keywords.KeywordOpportunity
 import me.nathanfallet.asonar.domain.models.keywords.OpportunityVerdict
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppKeywordCoverageUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.ListAppsUseCase
+import me.nathanfallet.asonar.domain.usecases.apps.RefreshAppKeywordsUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.GetKeywordOpportunitiesUseCase
 import me.nathanfallet.asonar.presentation.views.*
 import kotlin.math.max
@@ -25,6 +27,7 @@ data class AppsWebRoutesDependencies(
     val listAppsUseCase: ListAppsUseCase,
     val getAppKeywordCoverageUseCase: GetAppKeywordCoverageUseCase,
     val getKeywordOpportunitiesUseCase: GetKeywordOpportunitiesUseCase,
+    val refreshAppKeywordsUseCase: RefreshAppKeywordsUseCase,
 )
 
 /** The "Apps" tab: pick an app, then see its recommendations + ranking coverage (stats + chart + table). */
@@ -43,6 +46,8 @@ fun Route.appsWebRoutes(dependencies: AppsWebRoutesDependencies) = with(dependen
             return@get
         }
         val opportunities = getKeywordOpportunitiesUseCase(id).orEmpty()
+        // Fire-and-forget: refresh the relevant keywords in the background so the next view is fresher.
+        call.application.launch { refreshAppKeywordsUseCase(id) }
         call.respond(FreeMarkerContent("app.ftl", mapOf("view" to coverage.toCoverageView(opportunities))))
     }
 }

@@ -6,11 +6,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import me.nathanfallet.asonar.api.resources.apps.AppCoverageApi
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppKeywordCoverageUseCase
+import me.nathanfallet.asonar.domain.usecases.apps.RefreshAppKeywordsUseCase
 import me.nathanfallet.asonar.presentation.mappers.apps.toAppKeywordCoverageResponse
 
 /** Use cases for the app-coverage surface. Shared by the HTTP route here and the MCP tool. */
 data class AppCoverageRoutesDependencies(
     val getAppKeywordCoverageUseCase: GetAppKeywordCoverageUseCase,
+    val refreshAppKeywordsUseCase: RefreshAppKeywordsUseCase,
 )
 
 fun Route.appCoverageRoutes(dependencies: AppCoverageRoutesDependencies) = with(dependencies) {

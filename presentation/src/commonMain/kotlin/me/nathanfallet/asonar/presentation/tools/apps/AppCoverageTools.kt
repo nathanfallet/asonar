@@ -29,6 +29,8 @@ fun Server.appCoverageTools(dependencies: AppCoverageRoutesDependencies) = with(
             ?: return@addTool toolError("An \"appId\" argument is required.")
         val coverage = getAppKeywordCoverageUseCase(appId)
             ?: return@addTool toolError("App $appId not found.")
+        // Viewing the coverage kicks off a background refresh of the relevant keywords (gated to stay cheap).
+        refreshAppKeywordsUseCase(appId)
         CallToolResult(content = listOf(TextContent(Serialization.json.encodeToString(coverage.toAppKeywordCoverageResponse()))))
     }
 }
