@@ -26,14 +26,9 @@ data class KeywordDetail(
 @Serializable
 data class KeywordTopApp(
     val snapshot: TopAppSnapshot,
-    val ratingsPerDay: Double? = null,
-) {
-
-    /** New ratings expected over 30 days (velocity × 30). Null until the velocity is known. */
-    val ratingsPer30d: Int?
-        get() = ratingsPerDay?.let { kotlin.math.round(it * 30).toInt() }
-
-}
+    /** New ratings gained over the last 30 days (capped to the observed window). Null until known. */
+    val ratingsPer30d: Int? = null,
+)
 
 /** One of our apps and its latest rank on the keyword. */
 @Serializable

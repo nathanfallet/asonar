@@ -29,7 +29,7 @@ class ScoreKeywordOpportunityUseCaseImpl(
         val popularity = popularitySnapshotsRepository.getLatestForKeyword(keywordId)?.popularity
         val ourRankSnapshot = rankSnapshotsRepository.getLatestForKeywordAndApp(keywordId, appId)
         val ourVelocity = getAppRatingHistoryUseCase(keyword.store, app.storeAppId, keyword.country)
-            .ratingsPerDay?.let { (it * 30).roundToInt() }
+            .ratingsPer30d
 
         val totalResults = signals?.totalResults ?: ourRankSnapshot?.totalResults
         val result = OpportunityScorer.score(

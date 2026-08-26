@@ -17,8 +17,9 @@ data class AppRatingSnapshotResponse(
 )
 
 /**
- * An app's ratings history in a market, with the derived velocity ([ratingsPerDay]) — how many
- * ratings it gains per day. With the slope + the latest count you can interpolate at any date.
+ * An app's ratings history in a market, with the derived velocity ([ratingsPer30d]) — ratings gained
+ * over the last 30 days, capped to the observed window (never extrapolated past the data we have).
+ * Null until the readings cover at least two distinct calendar days.
  */
 @Serializable
 data class AppRatingHistoryResponse(
@@ -28,6 +29,6 @@ data class AppRatingHistoryResponse(
     val name: String? = null,
     val latestRatingCount: Int? = null,
     val latestAverageRating: Double? = null,
-    val ratingsPerDay: Double? = null,
+    val ratingsPer30d: Int? = null,
     val snapshots: List<AppRatingSnapshotResponse> = emptyList(),
 )

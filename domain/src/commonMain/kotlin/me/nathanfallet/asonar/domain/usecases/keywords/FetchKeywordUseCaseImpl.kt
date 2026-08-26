@@ -12,7 +12,6 @@ import me.nathanfallet.asonar.domain.services.AppSubtitleSource
 import me.nathanfallet.asonar.domain.services.KeywordPopularitySource
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppRatingHistoryUseCase
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase
-import kotlin.math.roundToInt
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -125,7 +124,7 @@ class FetchKeywordUseCaseImpl(
                     titleFactor = OpportunityScorer.titleFactor(keyword.term, app.appName, app.subtitle),
                     ratingCount = app.ratingCount,
                     ratingsPer30d = getAppRatingHistoryUseCase(keyword.store, app.storeAppId, keyword.country)
-                        .ratingsPerDay?.let { (it * 30).roundToInt() },
+                        .ratingsPer30d,
                 )
             }
             keywordSignalsRepository.create(

@@ -11,15 +11,27 @@ class RefreshAppKeywordsUseCaseImpl(
 
     override suspend fun invoke(appId: Long): Int? {
         val opportunities = getKeywordOpportunitiesUseCase(appId) ?: return null
-        // Keep the ones we rank on (graph freshness) + the opportunities worth watching; skip walls and
-        // parked terms. Enqueue only — the fetch's age-gate drops the ones that are still fresh.
-        val toRefresh = opportunities.filter { it.ourRank != null || it.verdict in RELEVANT_VERDICTS }
+        // Enqueue only — the fetch's age-gate drops the ones that are still fresh.
+        val toRefresh = opportunities.filter { shouldRefresh(it.ourRank != null, it.verdict) }
         toRefresh.forEach { refreshKeywordUseCase(it.keyword.id) }
         return toRefresh.size
     }
 
     companion object {
-        private val RELEVANT_VERDICTS = setOf(OpportunityVerdict.YES, OpportunityVerdict.YES_BUT)
+        /**
+         * Refresh the keywords we rank on (keep the graph fresh) plus the ones still worth watching:
+         * opportunities to chase (YES / YES_BUT) and **pending** ones (UNKNOWN = not enough data yet,
+         * so re-fetch to let them resolve). Skip settled walls (NO) and parked low-volume terms
+         * (RESERVE) — re-scoring them from scratch won't change the call.
+         */
+        internal fun shouldRefresh(ranked: Boolean, verdict: OpportunityVerdict): Boolean =
+            ranked || verdict in RELEVANT_VERDICTS
+
+        private val RELEVANT_VERDICTS = setOf(
+            OpportunityVerdict.YES,
+            OpportunityVerdict.YES_BUT,
+            OpportunityVerdict.UNKNOWN,
+        )
     }
 
 }

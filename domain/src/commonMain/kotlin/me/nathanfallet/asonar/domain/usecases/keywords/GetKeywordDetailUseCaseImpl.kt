@@ -25,7 +25,7 @@ class GetKeywordDetailUseCaseImpl(
         // this keyword's market (store/country), and shared across every keyword the app appears on.
         val topApps = topAppSnapshotsRepository.listLatestForKeyword(keywordId).map { snapshot ->
             val history = getAppRatingHistoryUseCase(keyword.store, snapshot.storeAppId, keyword.country)
-            KeywordTopApp(snapshot = snapshot, ratingsPerDay = history.ratingsPerDay)
+            KeywordTopApp(snapshot = snapshot, ratingsPer30d = history.ratingsPer30d)
         }
         return KeywordDetail(
             keyword = keyword,

@@ -23,6 +23,6 @@ fun AppRatingHistory.toAppRatingHistoryResponse() = AppRatingHistoryResponse(
     name = name,
     latestRatingCount = latestRatingCount,
     latestAverageRating = latestAverageRating,
-    ratingsPerDay = ratingsPerDay,
+    ratingsPer30d = ratingsPer30d,
     snapshots = snapshots.map { it.toAppRatingSnapshotResponse() },
 )
