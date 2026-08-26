@@ -34,7 +34,7 @@ fun Server.keywordsTools(dependencies: KeywordsRoutesDependencies) = with(depend
         description = "List the tracked keywords with their latest popularity (the 0-100 index).",
         inputSchema = ToolSchema(),
     ) {
-        val overviews = listKeywordOverviewsUseCase(Pagination(limit = 100))
+        val overviews = listKeywordOverviewsUseCase(Pagination(limit = 1000))
         CallToolResult(
             content = listOf(TextContent(Serialization.json.encodeToString(overviews.map { it.toKeywordResponse() }))),
         )
@@ -59,7 +59,7 @@ fun Server.keywordsTools(dependencies: KeywordsRoutesDependencies) = with(depend
 
     addTool(
         name = "track_keyword",
-        description = "Start tracking a keyword (idempotent). store is APP_STORE or PLAY_STORE; country is ISO-2 (e.g. FR).",
+        description = "Start tracking a keyword (idempotent). store is APP_STORE or PLAY_STORE; country is ISO-2 (e.g. FR). Tracking a NEW keyword automatically queues an initial fetch of its data — no need to call refresh_keyword afterwards.",
         inputSchema = ToolSchema(
             properties = buildJsonObject {
                 putJsonObject("term") { put("type", "string"); put("description", "The search term.") }

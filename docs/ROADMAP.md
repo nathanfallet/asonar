@@ -85,6 +85,11 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
 
 ## Les 5 chantiers sont livrés — reste (backlog)
 
+- **⚡ Audit perfs SQL / index** (prioritaire, la page app commence à ramer) : passer toutes les requêtes en
+  `EXPLAIN`, vérifier les index (les colonnes de filtre/jointure : `keywordId`, `appId`, `capturedAt`, les
+  uniques `term+store+country` / `store+storeAppId`), traquer les **N+1** sur `/apps/{id}` (couverture +
+  opportunités lisent les snapshots **par mot-clé** → coût linéaire en nb de mots-clés). Symptôme : lenteur qui
+  croît avec le nombre de mots-clés suivis. Matérialiser/agréger si besoin.
 - **Play Store** (multi-store) : sources Play (search/ranking + popularité + short description). Archi prête.
 - **Vraie migration DB** (aujourd'hui `SchemaUtils.create` + `ALTER`/drop manuels).
 - **Scale du scoring** : cacher notre vélocité par marché dans l'agrégat + matérialiser le score pour trier 10k en SQL.
