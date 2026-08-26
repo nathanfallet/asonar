@@ -33,8 +33,7 @@ abstract class BaseOpportunityScorer : OpportunityScorer {
     protected open val wResults = 0.1
     protected open val velFloor = 1.0         // avoid div-by-zero when leaders barely get reviews
     protected open val resultsCap = 400.0
-    protected open val totalCap = 50_000.0    // ratingCount at which review strength saturates
-    protected open val velocityCap = 1_000.0  // ratings/30d at which review strength saturates
+    protected open val velocityCap = 1_000.0  // ratings/30d at which defender strength saturates
 
     override fun score(inputs: OpportunityScorer.Inputs): OpportunityScorer.Result {
         val medianVelocity = median(inputs.competitors.mapNotNull { it.ratingsPer30d })
@@ -44,6 +43,15 @@ abstract class BaseOpportunityScorer : OpportunityScorer {
         val wall = wallStrength(inputs.competitors)
 
         if (inputs.popularity == null || inputs.competitors.isEmpty()) {
+            return OpportunityScorer.Result(OpportunityVerdict.UNKNOWN, null, wall, medianVelocity, velAdvantage)
+        }
+
+        // We size a wall by the term-carriers' review MOMENTUM (30-day velocity), not their static
+        // review count: a stale giant is beatable, a fast climber isn't. Until that velocity exists
+        // (needs a couple of days of history) we can't tell the two apart, so it's UNKNOWN — and the
+        // background refresh keeps re-fetching it. A below-floor popularity is terminal and wins first
+        // (no point waiting on a term nobody searches).
+        if (inputs.popularity > popMin && inputs.competitors.any { it.titleFactor > 0.0 && it.ratingsPer30d == null }) {
             return OpportunityScorer.Result(OpportunityVerdict.UNKNOWN, null, wall, medianVelocity, velAdvantage)
         }
 
@@ -65,25 +73,39 @@ abstract class BaseOpportunityScorer : OpportunityScorer {
     }
 
     /**
-     * 0..1 — how strongly the top is held. Position-weighted average (a la 1/rank, so #1 dominates)
-     * of each competitor's `titleFactor × reviewStrength`: an app that doesn't use the term (factor 0)
-     * or has no reviews contributes nothing to the wall, regardless of where it sits.
+     * 0..1 — how strongly the top is held. Each competitor's hold is `titleFactor × reviewStrength ×
+     * 1/position` (an app that doesn't use the term, factor 0, or has no reviews holds nothing; the
+     * top positions count far more). The wall is the **max** of the position-weighted *average* and
+     * the *single strongest holder* — so a lone-but-total defender at the very top (e.g. Instagram
+     * owning "instagram" while the nine apps below ignore the term) still walls the keyword instead of
+     * being averaged away into a false opening.
      */
     fun wallStrength(competitors: List<CompetitorSignal>): Double {
         if (competitors.isEmpty()) return 0.0
         var num = 0.0
         var den = 0.0
+        var strongestHold = 0.0
         for (c in competitors) {
             val weight = 1.0 / c.position
-            num += c.titleFactor * reviewStrength(c) * weight
+            val hold = c.titleFactor * reviewStrength(c) * weight
+            num += hold
             den += weight
+            strongestHold = maxOf(strongestHold, hold)
         }
-        return if (den == 0.0) 0.0 else num / den
+        val averaged = if (den == 0.0) 0.0 else num / den
+        return maxOf(averaged, strongestHold)
     }
 
-    /** 0..1 review weight: recent velocity when we have it, else total ratings, both log-saturated. */
+    /**
+     * 0..1 defender strength from the recent **30-day review velocity** — our best proxy for the
+     * download velocity that actually drives App Store rank. A big *old* review total is deliberately
+     * NOT used: ratings have no direct rank correlation (cf. app-aso ranking mechanics), and recent
+     * review velocity is far more correlated than a stale total. Missing velocity is caught a level up
+     * (→ UNKNOWN), so a null here only ever belongs to a non-term-carrier (titleFactor 0) whose wall
+     * contribution is 0 anyway.
+     */
     private fun reviewStrength(c: CompetitorSignal): Double =
-        c.ratingsPer30d?.let { logStrength(it, velocityCap) } ?: logStrength(c.ratingCount ?: 0, totalCap)
+        logStrength(c.ratingsPer30d ?: 0, velocityCap)
 
     // coerceAtLeast(0): a velocity can come out negative (noisy regression on a declining count) —
     // a shrinking app is weak, so floor it at 0 rather than feeding a negative into log10 (→ NaN).

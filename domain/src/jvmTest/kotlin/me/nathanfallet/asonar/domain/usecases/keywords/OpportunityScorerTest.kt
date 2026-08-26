@@ -6,13 +6,18 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * Calibrates the App Store "brain" against the app-aso opportunity shortcut (§3bis): the wall crosses
+ * **title usage** with the top's **recent 30-day review velocity** (the proxy for download velocity,
+ * which drives rank — a stale review total does not). Without that velocity we can't judge a defender,
+ * so it's UNKNOWN, never a guess from the review count.
+ */
 class OpportunityScorerTest {
 
     private val scorer = AppStoreOpportunityScorer()
 
-    // position, title factor (1 title / .5 subtitle / 0 none), total ratings, velocity (ratings/30d)
-    private fun c(pos: Int, title: Double, reviews: Int? = null, vel: Int? = null) =
-        CompetitorSignal(pos, title, reviews, vel)
+    // position, title factor (1 title / .5 subtitle / 0 none), 30-day review velocity
+    private fun c(pos: Int, title: Double, vel: Int? = null) = CompetitorSignal(pos, title, null, vel)
 
     private fun run(
         pop: Int? = 50,
@@ -22,54 +27,63 @@ class OpportunityScorerTest {
         label: String = "",
     ): OpportunityScorer.Result {
         val r = scorer.score(OpportunityScorer.Inputs(pop, competitors, ourVel, total))
-        println("[scorer] ${label.padEnd(34)} verdict=${r.verdict} score=${r.score} wall=${(r.wallStrength * 100).toInt()}%")
+        println("[scorer] ${label.padEnd(36)} verdict=${r.verdict} score=${r.score} wall=${(r.wallStrength * 100).toInt()}%")
         return r
     }
 
-    // The #1 holder is huge on reviews but doesn't use the term → it's there "by accident", easy to
-    // pass; the term-users sit lower with few reviews. Should be a YES.
+    // Nobody in the top uses the term → no textual wall to break → YES. (No velocity needed: there's
+    // no defender to size up.)
     @Test
-    fun weakTopHolder_bigReviewsButNoTitle_isYes() {
+    fun nobodyUsesTerm_isYes() {
+        val r = run(pop = 55, competitors = listOf(c(1, 0.0), c(2, 0.0), c(3, 0.0)), label = "term unused")
+        assertEquals(OpportunityVerdict.YES, r.verdict)
+    }
+
+    // The top use the term but gain reviews slowly (weak momentum) → beatable → YES.
+    @Test
+    fun topUsesTermButLowVelocity_isYes() {
         val r = run(
             pop = 55,
-            competitors = listOf(c(1, 0.0, reviews = 80_000), c(2, 1.0, reviews = 300), c(3, 1.0, reviews = 200)),
-            label = "weak #1 (no title, huge reviews)",
+            competitors = listOf(c(1, 1.0, vel = 3), c(2, 1.0, vel = 2), c(3, 0.0)),
+            label = "term in title, low velocity",
         )
         assertEquals(OpportunityVerdict.YES, r.verdict)
     }
 
-    // #1 uses the term but has almost no reviews (weakly anchored); a huge app sits lower WITHOUT the
-    // term. Should be a YES — the actual top-of-the-term is beatable.
+    // The top own the term AND gain reviews fast (strong momentum) → a real wall → NO.
     @Test
-    fun topUsesTermButFewReviews_isYes() {
-        val r = run(
-            pop = 55,
-            competitors = listOf(c(1, 1.0, reviews = 15), c(2, 1.0, reviews = 40), c(3, 0.0, reviews = 90_000)),
-            label = "#1 uses term, tiny reviews",
-        )
-        assertEquals(OpportunityVerdict.YES, r.verdict)
-    }
-
-    // The top actually own the term AND are review-heavy → a real wall. Should be a NO.
-    @Test
-    fun realWall_topUseTermAndHeavyReviews_isNo() {
+    fun topUsesTermAndHighVelocity_isNo() {
         val r = run(
             pop = 60,
-            competitors = listOf(c(1, 1.0, reviews = 80_000), c(2, 1.0, reviews = 60_000), c(3, 1.0, reviews = 40_000)),
-            label = "real wall (title + heavy reviews)",
+            competitors = listOf(c(1, 1.0, vel = 800), c(2, 1.0, vel = 600), c(3, 1.0, vel = 400)),
+            label = "term in title, high velocity",
         )
         assertEquals(OpportunityVerdict.NO, r.verdict)
     }
 
-    // Big, well-reviewed apps that simply don't use the term aren't a wall for it → YES.
+    // A term-carrier at the top has no 30-day velocity yet (fresh history) → we can't tell a strong
+    // defender from a stale one → UNKNOWN (never a guess from the review count). The background refresh
+    // keeps re-fetching until the velocity accrues.
     @Test
-    fun bigAppsButNobodyUsesTerm_isYes() {
+    fun termCarrierWithoutVelocity_isUnknown() {
         val r = run(
-            pop = 55,
-            competitors = listOf(c(1, 0.0, reviews = 90_000), c(2, 0.0, reviews = 70_000), c(3, 0.0, reviews = 50_000)),
-            label = "big reviews, term unused",
+            pop = 100,
+            competitors = listOf(c(1, 1.0, vel = null), c(2, 0.0, vel = null)),
+            label = "term-carrier, no velocity",
         )
-        assertEquals(OpportunityVerdict.YES, r.verdict)
+        assertEquals(OpportunityVerdict.UNKNOWN, r.verdict)
+        assertEquals(null, r.score)
+    }
+
+    // A single dominant #1 that owns the term with strong velocity walls the keyword even when the nine
+    // apps below ignore the term — you won't dethrone it. Averaging alone would dilute that lone-but-
+    // total defender (the "instagram" case); the wall reflects the strongest holder → NO.
+    @Test
+    fun dominantTopHolder_restIgnoreTerm_isNo() {
+        val competitors = listOf(c(1, 1.0, vel = 900)) + (2..10).map { c(it, 0.0) }
+        val r = run(pop = 100, competitors = competitors, label = "dominant #1, rest ignore term")
+        assertEquals(OpportunityVerdict.NO, r.verdict)
+        assertTrue(r.wallStrength > 0.9, "a dominant #1 should wall the keyword, got ${r.wallStrength}")
     }
 
     // A genuine wall, but we grow reviews 3× faster than its median → we can climb → YES.
@@ -85,11 +99,13 @@ class OpportunityScorerTest {
         assertEquals(3.0, r.velocityAdvantage)
     }
 
+    // Below the popularity floor is terminal — Réserve wins even over a missing velocity (no point
+    // waiting on a term nobody searches).
     @Test
     fun lowVolume_isReserve() {
         assertEquals(
             OpportunityVerdict.RESERVE,
-            run(pop = 3, competitors = listOf(c(1, 1.0, reviews = 100)), label = "low volume").verdict
+            run(pop = 3, competitors = listOf(c(1, 1.0, vel = null)), label = "low volume").verdict
         )
     }
 
@@ -97,7 +113,7 @@ class OpportunityScorerTest {
     fun noData_isUnknown() {
         assertEquals(
             OpportunityVerdict.UNKNOWN,
-            run(pop = null, competitors = listOf(c(1, 1.0, reviews = 100)), label = "no popularity").verdict
+            run(pop = null, competitors = listOf(c(1, 1.0, vel = 100)), label = "no popularity").verdict
         )
         assertEquals(
             OpportunityVerdict.UNKNOWN,
@@ -119,7 +135,7 @@ class OpportunityScorerTest {
     fun negativeVelocity_doesNotProduceNaN() {
         val r = run(
             pop = 50,
-            competitors = listOf(c(1, 1.0, vel = -8), c(2, 1.0, vel = 5), c(3, 0.0, vel = -20)),
+            competitors = listOf(c(1, 1.0, vel = -8), c(2, 1.0, vel = 5), c(3, 0.0)),
             label = "negative velocity",
         )
         assertTrue(r.score != null && !r.wallStrength.isNaN(), "must produce a finite score, got ${r.score}/${r.wallStrength}")
@@ -127,8 +143,7 @@ class OpportunityScorerTest {
 
     @Test
     fun wallStrength_zeroWhenTopDoesNotUseTerm() {
-        assertEquals(0.0, scorer.wallStrength(listOf(c(1, 0.0, reviews = 99_999))))
-        assertTrue(scorer.wallStrength(listOf(c(1, 1.0, reviews = 80_000))) > 0.9)
+        assertEquals(0.0, scorer.wallStrength(listOf(c(1, 0.0, vel = 900))))
+        assertTrue(scorer.wallStrength(listOf(c(1, 1.0, vel = 900))) > 0.9)
     }
-
 }
