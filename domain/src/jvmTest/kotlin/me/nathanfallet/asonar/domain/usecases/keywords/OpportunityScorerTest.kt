@@ -111,6 +111,18 @@ class OpportunityScorerTest {
         assertEquals(0.0, OpportunityScorer.titleFactor("pizza", "Cooking Fever", "jeu de cuisine"))
     }
 
+    // A noisy least-squares slope can yield a negative velocity — it must floor to 0, never feed a
+    // negative into log10 (which would give NaN and crash roundToInt). Regression test.
+    @Test
+    fun negativeVelocity_doesNotProduceNaN() {
+        val r = run(
+            pop = 50,
+            competitors = listOf(c(1, 1.0, vel = -8), c(2, 1.0, vel = 5), c(3, 0.0, vel = -20)),
+            label = "negative velocity",
+        )
+        assertTrue(r.score != null && !r.wallStrength.isNaN(), "must produce a finite score, got ${r.score}/${r.wallStrength}")
+    }
+
     @Test
     fun wallStrength_zeroWhenTopDoesNotUseTerm() {
         assertEquals(0.0, OpportunityScorer.wallStrength(listOf(c(1, 0.0, reviews = 99_999))))

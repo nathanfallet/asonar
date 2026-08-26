@@ -97,8 +97,10 @@ internal object OpportunityScorer {
     private fun reviewStrength(c: CompetitorSignal): Double =
         c.ratingsPer30d?.let { logStrength(it, VELOCITY_CAP) } ?: logStrength(c.ratingCount ?: 0, TOTAL_CAP)
 
+    // coerceAtLeast(0): a velocity can come out negative (noisy regression on a declining count) —
+    // a shrinking app is weak, so floor it at 0 rather than feeding a negative into log10 (→ NaN).
     private fun logStrength(value: Int, cap: Double): Double =
-        (log10(value + 1.0) / log10(cap)).coerceIn(0.0, 1.0)
+        (log10(value.coerceAtLeast(0) + 1.0) / log10(cap)).coerceIn(0.0, 1.0)
 
     /** Median of a list of ints, rounded for even sizes. Null on empty. */
     fun median(values: List<Int>): Int? {
