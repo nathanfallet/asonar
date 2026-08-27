@@ -54,4 +54,14 @@ class PopularitySnapshotsDatabaseRepository(
                 .firstOrNull()
         }
 
+    // One read + in-memory reduce instead of a getLatest per keyword (the N+1). A small history table,
+    // so this stays cheap; move to a per-group SQL query if it ever grows large (see docs/database-optimization.md).
+    override suspend fun latestByKeyword(): Map<Long, PopularitySnapshot> =
+        transactionManager.suspendTransaction {
+            PopularitySnapshots.selectAll()
+                .map { PopularitySnapshots.toSnapshot(it) }
+                .groupBy { it.keywordId }
+                .mapValues { (_, rows) -> rows.maxBy { it.capturedAt } }
+        }
+
 }

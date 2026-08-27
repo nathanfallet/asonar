@@ -22,13 +22,17 @@ class GetAppKeywordCoverageUseCaseImpl(
         val app = appsRepository.get(appId) ?: return null
         val keywords = keywordsRepository.list(Pagination(limit = 0))
             .filter { it.store == app.store }
+        // Batch-load the app's whole rank history + every keyword's popularity once, instead of two
+        // queries per keyword (the N+1). History is newest-first per keyword.
+        val historyByKeyword = rankSnapshotsRepository.historyByKeywordForApp(app.id)
+        val popularityByKeyword = popularitySnapshotsRepository.latestByKeyword()
         val entries = keywords.map { keyword ->
-            // newest-first history; latest reading is the current standing, reversed for the graph.
-            val history = rankSnapshotsRepository.listForKeywordAndApp(keyword.id, appId, Pagination(limit = 500))
+            val history = historyByKeyword[keyword.id].orEmpty()
+            // latest reading is the current standing, reversed for the graph (oldest-first).
             val latest = history.firstOrNull()
             KeywordCoverageEntry(
                 keyword = keyword,
-                popularity = popularitySnapshotsRepository.getLatestForKeyword(keyword.id)?.popularity,
+                popularity = popularityByKeyword[keyword.id]?.popularity,
                 rank = latest?.rank,
                 totalResults = latest?.totalResults,
                 capturedAt = latest?.capturedAt,

@@ -49,4 +49,13 @@ class KeywordSignalsDatabaseRepository(
                 .firstOrNull()
         }
 
+    // One read + in-memory reduce instead of a getLatest per keyword (see docs/database-optimization.md).
+    override suspend fun latestByKeyword(): Map<Long, KeywordSignals> =
+        transactionManager.suspendTransaction {
+            KeywordSignalSnapshots.selectAll()
+                .map { KeywordSignalSnapshots.toSignals(it) }
+                .groupBy { it.keywordId }
+                .mapValues { (_, rows) -> rows.maxBy { it.capturedAt } }
+        }
+
 }

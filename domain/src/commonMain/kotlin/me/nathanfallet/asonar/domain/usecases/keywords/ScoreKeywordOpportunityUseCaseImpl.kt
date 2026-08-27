@@ -1,38 +1,34 @@
 package me.nathanfallet.asonar.domain.usecases.keywords
 
-import me.nathanfallet.asonar.domain.models.apps.App
+import me.nathanfallet.asonar.domain.models.keywords.CompetitorSignal
 import me.nathanfallet.asonar.domain.models.keywords.Keyword
 import me.nathanfallet.asonar.domain.models.keywords.KeywordOpportunity
-import me.nathanfallet.asonar.domain.repositories.*
-import me.nathanfallet.asonar.domain.usecases.apps.GetAppRatingHistoryUseCase
+import me.nathanfallet.asonar.domain.models.keywords.KeywordSignals
+import me.nathanfallet.asonar.domain.models.snapshots.RankSnapshot
 import kotlin.math.roundToInt
 
 /**
- * Scores a keyword at read time from the **precomputed per-competitor signals** (Option B): the
- * expensive top-of-results title-usage + review velocity are read from [KeywordSignalsRepository]
- * (captured at fetch), so this only adds the cheap, app-specific bits — our rank and our own review
- * velocity — before running the pure [OpportunityScorer]. Weights/thresholds re-tune without a re-fetch.
+ * Scores a keyword as an ASO opportunity from data the caller has **already loaded** (Option B): the
+ * precomputed per-competitor [signals] (title-usage + review velocity, captured at fetch), the latest
+ * [popularity], our latest [ourRank] and our own review velocity [ourVelocity]. Pure — no I/O — so the
+ * caller batch-loads once and scores every keyword in memory instead of a query per keyword. Runs the
+ * store's [OpportunityScorer]; weights/thresholds re-tune without a re-fetch.
  */
 class ScoreKeywordOpportunityUseCaseImpl(
-    private val popularitySnapshotsRepository: PopularitySnapshotsRepository,
-    private val keywordSignalsRepository: KeywordSignalsRepository,
-    private val rankSnapshotsRepository: RankSnapshotsRepository,
-    private val getAppRatingHistoryUseCase: GetAppRatingHistoryUseCase,
     private val opportunityScorers: List<OpportunityScorer>,
 ) : ScoreKeywordOpportunityUseCase {
 
-    // The keyword and app are passed in (the caller already listed them) — no per-keyword re-fetch.
-    override suspend fun invoke(keyword: Keyword, app: App): KeywordOpportunity? {
+    override suspend fun invoke(
+        keyword: Keyword,
+        signals: KeywordSignals?,
+        popularity: Int?,
+        ourRank: RankSnapshot?,
+        ourVelocity: Int?,
+    ): KeywordOpportunity? {
         val scorer = opportunityScorers.firstOrNull { it.store == keyword.store } ?: return null
 
-        val signals = keywordSignalsRepository.getLatestForKeyword(keyword.id)
         val competitors = signals?.competitors.orEmpty()
-        val popularity = popularitySnapshotsRepository.getLatestForKeyword(keyword.id)?.popularity
-        val ourRankSnapshot = rankSnapshotsRepository.getLatestForKeywordAndApp(keyword.id, app.id)
-        val ourVelocity = getAppRatingHistoryUseCase(keyword.store, app.storeAppId, keyword.country)
-            .ratingsPer30d
-
-        val totalResults = signals?.totalResults ?: ourRankSnapshot?.totalResults
+        val totalResults = signals?.totalResults ?: ourRank?.totalResults
         val result = scorer.score(
             OpportunityScorer.Inputs(
                 popularity = popularity,
@@ -47,7 +43,7 @@ class ScoreKeywordOpportunityUseCaseImpl(
             verdict = result.verdict,
             score = result.score,
             popularity = popularity,
-            ourRank = ourRankSnapshot?.rank,
+            ourRank = ourRank?.rank,
             ourRatingsPer30d = ourVelocity,
             top10MedianRatingsPer30d = result.top10MedianVelocity,
             velocityAdvantage = result.velocityAdvantage,
@@ -60,14 +56,14 @@ class ScoreKeywordOpportunityUseCaseImpl(
                 result.top10MedianVelocity,
                 ourVelocity,
                 result.velocityAdvantage,
-                ourRankSnapshot?.rank,
+                ourRank?.rank,
                 totalResults
             ),
         )
     }
 
     private fun comment(
-        competitors: List<me.nathanfallet.asonar.domain.models.keywords.CompetitorSignal>,
+        competitors: List<CompetitorSignal>,
         wallStrength: Double,
         top10Velocity: Int?,
         ourVelocity: Int?,

@@ -26,16 +26,10 @@ val domainModule: Module = module {
     single<OpportunityScorer> { AppStoreOpportunityScorer() }
     single<ListKeywordOverviewsUseCase> { ListKeywordOverviewsUseCaseImpl(get(), get()) }
     single<GetKeywordDetailUseCase> { GetKeywordDetailUseCaseImpl(get(), get(), get(), get(), get(), get()) }
-    single<ScoreKeywordOpportunityUseCase> {
-        ScoreKeywordOpportunityUseCaseImpl(
-            get(),
-            get(),
-            get(),
-            get(),
-            getAll()
-        )
+    single<ScoreKeywordOpportunityUseCase> { ScoreKeywordOpportunityUseCaseImpl(getAll()) }
+    single<GetKeywordOpportunitiesUseCase> {
+        GetKeywordOpportunitiesUseCaseImpl(get(), get(), get(), get(), get(), get(), get())
     }
-    single<GetKeywordOpportunitiesUseCase> { GetKeywordOpportunitiesUseCaseImpl(get(), get(), get()) }
     single<GetOrCreateKeywordUseCase> { GetOrCreateKeywordUseCaseImpl(get(), get()) }
     single<DeleteKeywordUseCase> { DeleteKeywordUseCaseImpl(get()) }
     single<ListPopularityHistoryUseCase> { ListPopularityHistoryUseCaseImpl(get()) }

@@ -16,4 +16,7 @@ interface PopularitySnapshotsRepository {
     /** Reads the most recent popularity of a keyword. */
     suspend fun getLatestForKeyword(keywordId: Long): PopularitySnapshot?
 
+    /** The latest popularity snapshot of every keyword, in one read (keyed by keyword id). */
+    suspend fun latestByKeyword(): Map<Long, PopularitySnapshot>
+
 }

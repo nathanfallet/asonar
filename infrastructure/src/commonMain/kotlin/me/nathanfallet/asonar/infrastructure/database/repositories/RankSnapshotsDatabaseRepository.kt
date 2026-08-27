@@ -78,4 +78,24 @@ class RankSnapshotsDatabaseRepository(
                 .firstOrNull()
         }
 
+    // One read for the app's whole rank history + in-memory reduce, instead of a getLatest per keyword
+    // (the coverage/opportunities N+1 — see docs/database-optimization.md).
+    override suspend fun latestByKeywordForApp(appId: Long): Map<Long, RankSnapshot> =
+        transactionManager.suspendTransaction {
+            RankSnapshots.selectAll()
+                .where { RankSnapshots.appId eq appId }
+                .map { RankSnapshots.toSnapshot(it) }
+                .groupBy { it.keywordId }
+                .mapValues { (_, rows) -> rows.maxBy { it.capturedAt } }
+        }
+
+    override suspend fun historyByKeywordForApp(appId: Long): Map<Long, List<RankSnapshot>> =
+        transactionManager.suspendTransaction {
+            RankSnapshots.selectAll()
+                .where { RankSnapshots.appId eq appId }
+                .orderBy(RankSnapshots.capturedAt to SortOrder.DESC)
+                .map { RankSnapshots.toSnapshot(it) }
+                .groupBy { it.keywordId }
+        }
+
 }

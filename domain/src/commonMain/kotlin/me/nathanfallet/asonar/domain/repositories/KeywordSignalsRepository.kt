@@ -12,4 +12,7 @@ interface KeywordSignalsRepository {
     /** The most recent signals for a keyword, or null if none captured yet. */
     suspend fun getLatestForKeyword(keywordId: Long): KeywordSignals?
 
+    /** The latest signals of every keyword, in one read (keyed by keyword id). */
+    suspend fun latestByKeyword(): Map<Long, KeywordSignals>
+
 }

@@ -23,4 +23,10 @@ interface RankSnapshotsRepository {
     /** Reads the most recent rank of an app on a keyword. */
     suspend fun getLatestForKeywordAndApp(keywordId: Long, appId: Long): RankSnapshot?
 
+    /** The latest rank of [appId] on every keyword, in one read (keyed by keyword id). */
+    suspend fun latestByKeywordForApp(appId: Long): Map<Long, RankSnapshot>
+
+    /** The full rank history of [appId] on every keyword, newest first, in one read (keyed by keyword id). */
+    suspend fun historyByKeywordForApp(appId: Long): Map<Long, List<RankSnapshot>>
+
 }
