@@ -51,6 +51,9 @@ signaux) → 1 commit/fetch au lieu de ~215, et **`batchInsert`** pour les ~200 
 _Attention : les repos font chacun leur `suspendTransaction` ; il faut soit ouvrir une transaction englobante
 que les repos rejoignent, soit exposer des méthodes batch/`create(list)`._
 
+> ✅ **FAIT** : méthodes `createAll(payloads)` (`batchInsert`) sur les repos rating/topApp/rank ; un run
+> écrit via elles → ~215 commits/fetch → ~5, et les ~200 ratings en 1 batch.
+
 ### 🔴 #2 — N+1 massif sur les lectures (aggravé par la limite retirée)
 
 Sur ~1340 keywords, chaque page reboucle en requêtes unitaires :
@@ -69,6 +72,12 @@ Sur ~1340 keywords, chaque page reboucle en requêtes unitaires :
   keywords en **une requête chacun** (group-by-max / window function) au lieu d'une par keyword → les
   milliers de round-trips deviennent une poignée.
 
+> ✅ **FAIT** : quick win (`ScoreKeywordOpportunityUseCase` reçoit keyword + app, plus de re-fetch) +
+> `latestByKeyword()` / `latestByKeywordForApp(appId)` via un **JOIN sur la sous-requête `MAX(captured_at)
+> GROUP BY keyword_id`** (EXPLAIN : `Using index for group-by` / scan d'index couvrant + retour `ref` à 1
+> ligne par mot-clé → ne lit que le dernier de chaque mot-clé, tient à l'échelle). `ScoreKeyword` devenu pur
+> (zéro I/O). Opportunités ~6700 → ~20 requêtes ; couverture ~2680 → ~4 ; liste ~1340 → 2.
+
 ### 🟠 #3 — On enregistre les notes des 200 résultats par fetch
 
 `FetchKeyword` fait `appRatings = results.map` sur **tous** les ~200 résultats → 336 k lignes, +200
@@ -86,11 +95,11 @@ recours.
 
 ## Ordre d'attaque proposé
 
-1. **#1 batching des writes** (1 transaction + `batchInsert` par fetch) — le plus gros gain, contenu dans le
+1. ✅ **#1 batching des writes** (1 transaction + `batchInsert` par fetch) — le plus gros gain, contenu dans le
    fetch pipeline.
-2. **#2 quick win** (ne plus re-fetch app + keyword dans le scoring) — ~5 min, −42 k requêtes.
-3. **#2 vrai fix** (batch-load des derniers snapshots) — rend les pages opportunités / couverture rapides à
-   l'échelle.
-4. **#3** (ratings top-N seulement) — stoppe la croissance de la grosse table.
+2. ✅ **#2 quick win** (ne plus re-fetch app + keyword dans le scoring) — −42 k requêtes.
+3. ✅ **#2 vrai fix** (batch-load des derniers snapshots, JOIN group-by) — pages opportunités / couverture
+   rapides à l'échelle.
+4. ⏳ **#3** (ratings top-N seulement) — stoppe la croissance de la grosse table. **← reste à faire.**
 
 Lié au backlog **« Audit perfs SQL / index »** et **« pagination »** de la [ROADMAP](ROADMAP.md).

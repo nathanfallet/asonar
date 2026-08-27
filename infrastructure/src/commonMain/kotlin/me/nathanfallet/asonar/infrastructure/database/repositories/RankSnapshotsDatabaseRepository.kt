@@ -6,12 +6,16 @@ import me.nathanfallet.asonar.domain.models.snapshots.RankSnapshotPayload
 import me.nathanfallet.asonar.domain.repositories.RankSnapshotsRepository
 import me.nathanfallet.asonar.infrastructure.database.TransactionManager
 import me.nathanfallet.asonar.infrastructure.database.tables.RankSnapshots
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class RankSnapshotsDatabaseRepository(
@@ -78,15 +82,28 @@ class RankSnapshotsDatabaseRepository(
                 .firstOrNull()
         }
 
-    // One read for the app's whole rank history + in-memory reduce, instead of a getLatest per keyword
-    // (the coverage/opportunities N+1 — see docs/database-optimization.md).
+    // Latest rank of the app per keyword via a join to a "MAX(captured_at) per keyword_id for this app"
+    // derived table — reads only the app's latest row per keyword through the (keyword_id, app_id,
+    // captured_at) index, in one query (the coverage/opportunities N+1 — see docs/database-optimization.md).
     override suspend fun latestByKeywordForApp(appId: Long): Map<Long, RankSnapshot> =
         transactionManager.suspendTransaction {
-            RankSnapshots.selectAll()
+            val maxAt = RankSnapshots.capturedAt.max().alias("max_at")
+            val latest = RankSnapshots
+                .select(RankSnapshots.keywordId, maxAt)
                 .where { RankSnapshots.appId eq appId }
-                .map { RankSnapshots.toSnapshot(it) }
-                .groupBy { it.keywordId }
-                .mapValues { (_, rows) -> rows.maxBy { it.capturedAt } }
+                .groupBy(RankSnapshots.keywordId)
+                .alias("latest")
+            RankSnapshots
+                .join(
+                    latest, JoinType.INNER,
+                    onColumn = RankSnapshots.keywordId,
+                    otherColumn = latest[RankSnapshots.keywordId],
+                    additionalConstraint = {
+                        (RankSnapshots.capturedAt eq latest[maxAt]) and (RankSnapshots.appId eq appId)
+                    },
+                )
+                .selectAll()
+                .associate { it[RankSnapshots.keywordId] to RankSnapshots.toSnapshot(it) }
         }
 
     override suspend fun historyByKeywordForApp(appId: Long): Map<Long, List<RankSnapshot>> =

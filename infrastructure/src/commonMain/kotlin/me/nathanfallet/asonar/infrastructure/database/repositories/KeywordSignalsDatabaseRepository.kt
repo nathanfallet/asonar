@@ -6,10 +6,14 @@ import me.nathanfallet.asonar.domain.models.keywords.KeywordSignalsPayload
 import me.nathanfallet.asonar.domain.repositories.KeywordSignalsRepository
 import me.nathanfallet.asonar.infrastructure.database.TransactionManager
 import me.nathanfallet.asonar.infrastructure.database.tables.KeywordSignalSnapshots
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class KeywordSignalsDatabaseRepository(
@@ -49,13 +53,25 @@ class KeywordSignalsDatabaseRepository(
                 .firstOrNull()
         }
 
-    // One read + in-memory reduce instead of a getLatest per keyword (see docs/database-optimization.md).
+    // Latest signals per keyword via a join to a "MAX(captured_at) per keyword_id" derived table — reads
+    // only the latest row of each keyword through the (keyword_id, captured_at) index, in one query, and
+    // stays cheap as the history grows (see docs/database-optimization.md).
     override suspend fun latestByKeyword(): Map<Long, KeywordSignals> =
         transactionManager.suspendTransaction {
-            KeywordSignalSnapshots.selectAll()
-                .map { KeywordSignalSnapshots.toSignals(it) }
-                .groupBy { it.keywordId }
-                .mapValues { (_, rows) -> rows.maxBy { it.capturedAt } }
+            val maxAt = KeywordSignalSnapshots.capturedAt.max().alias("max_at")
+            val latest = KeywordSignalSnapshots
+                .select(KeywordSignalSnapshots.keywordId, maxAt)
+                .groupBy(KeywordSignalSnapshots.keywordId)
+                .alias("latest")
+            KeywordSignalSnapshots
+                .join(
+                    latest, JoinType.INNER,
+                    onColumn = KeywordSignalSnapshots.keywordId,
+                    otherColumn = latest[KeywordSignalSnapshots.keywordId],
+                    additionalConstraint = { KeywordSignalSnapshots.capturedAt eq latest[maxAt] },
+                )
+                .selectAll()
+                .associate { it[KeywordSignalSnapshots.keywordId] to KeywordSignalSnapshots.toSignals(it) }
         }
 
 }

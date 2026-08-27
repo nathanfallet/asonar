@@ -6,10 +6,14 @@ import me.nathanfallet.asonar.domain.models.snapshots.PopularitySnapshotPayload
 import me.nathanfallet.asonar.domain.repositories.PopularitySnapshotsRepository
 import me.nathanfallet.asonar.infrastructure.database.TransactionManager
 import me.nathanfallet.asonar.infrastructure.database.tables.PopularitySnapshots
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class PopularitySnapshotsDatabaseRepository(
@@ -54,14 +58,26 @@ class PopularitySnapshotsDatabaseRepository(
                 .firstOrNull()
         }
 
-    // One read + in-memory reduce instead of a getLatest per keyword (the N+1). A small history table,
-    // so this stays cheap; move to a per-group SQL query if it ever grows large (see docs/database-optimization.md).
+    // Latest row per keyword, without a getLatest per keyword (the N+1) nor a full-table read: join the
+    // table to a "MAX(captured_at) per keyword_id" derived table. The GROUP BY reads only the
+    // (keyword_id, captured_at) index (covering), and the join matches back on that same index — so it
+    // reads just the latest row of each keyword, in one query, and stays cheap as the history grows.
     override suspend fun latestByKeyword(): Map<Long, PopularitySnapshot> =
         transactionManager.suspendTransaction {
-            PopularitySnapshots.selectAll()
-                .map { PopularitySnapshots.toSnapshot(it) }
-                .groupBy { it.keywordId }
-                .mapValues { (_, rows) -> rows.maxBy { it.capturedAt } }
+            val maxAt = PopularitySnapshots.capturedAt.max().alias("max_at")
+            val latest = PopularitySnapshots
+                .select(PopularitySnapshots.keywordId, maxAt)
+                .groupBy(PopularitySnapshots.keywordId)
+                .alias("latest")
+            PopularitySnapshots
+                .join(
+                    latest, JoinType.INNER,
+                    onColumn = PopularitySnapshots.keywordId,
+                    otherColumn = latest[PopularitySnapshots.keywordId],
+                    additionalConstraint = { PopularitySnapshots.capturedAt eq latest[maxAt] },
+                )
+                .selectAll()
+                .associate { it[PopularitySnapshots.keywordId] to PopularitySnapshots.toSnapshot(it) }
         }
 
 }
