@@ -11,12 +11,14 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import kotlin.time.Instant
 
 class RankSnapshotsDatabaseRepository(
     private val transactionManager: TransactionManager,
@@ -106,10 +108,10 @@ class RankSnapshotsDatabaseRepository(
                 .associate { it[RankSnapshots.keywordId] to RankSnapshots.toSnapshot(it) }
         }
 
-    override suspend fun historyByKeywordForApp(appId: Long): Map<Long, List<RankSnapshot>> =
+    override suspend fun historyByKeywordForApp(appId: Long, since: Instant): Map<Long, List<RankSnapshot>> =
         transactionManager.suspendTransaction {
             RankSnapshots.selectAll()
-                .where { RankSnapshots.appId eq appId }
+                .where { (RankSnapshots.appId eq appId) and (RankSnapshots.capturedAt greaterEq since) }
                 .orderBy(RankSnapshots.capturedAt to SortOrder.DESC)
                 .map { RankSnapshots.toSnapshot(it) }
                 .groupBy { it.keywordId }

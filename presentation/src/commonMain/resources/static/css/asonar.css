@@ -681,6 +681,66 @@ html, body {
     background: var(--muted) !important;
 }
 
+/* Chart header controls (country select + Top-N / period segmented) + legend badge */
+.chart-head {
+    justify-content: space-between;
+}
+
+.chart-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.chart-select {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.chart-seg {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--panel-2);
+}
+
+.chart-seg button {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--muted);
+    background: transparent;
+    border: 0;
+    border-left: 1px solid var(--line);
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+.chart-seg button:first-child {
+    border-left: 0;
+}
+
+.chart-seg button.on {
+    color: var(--bg);
+    background: var(--accent);
+    font-weight: 600;
+}
+
+.chart-leg-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+}
+
 /* Reusable sortable/filterable tables (js-table + /js/table.js) */
 .table-tools {
     display: flex;

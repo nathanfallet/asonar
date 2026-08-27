@@ -54,11 +54,32 @@ fun Route.appsWebRoutes(dependencies: AppsWebRoutesDependencies) = with(dependen
 
 // --- Chart wire format (embedded as JSON, rendered client-side by /js/chart.js) ---
 
+// Generic wire format for /js/chart.js (a reusable multi-line time chart). Only `yInvert`, `series`
+// and each series' `label`/`color`/`points` are required; the rest is optional so the same component
+// serves other charts (e.g. a keyword's popularity over time) by declaring different filters.
 @Serializable
-private data class ChartData(val yInvert: Boolean, val series: List<ChartSeries>)
+private data class ChartData(
+    val yInvert: Boolean,
+    val series: List<ChartSeries>,
+    val filters: ChartFilters? = null,
+)
+
+/** Which filter controls the chart shows. Empty/false → the control is hidden. */
+@Serializable
+private data class ChartFilters(
+    val country: Boolean = false,   // a "country" selector, built from each series' `country`
+    val period: List<Int> = emptyList(), // day-windows for the period segmented control (e.g. 1, 7, 30)
+    val top: List<Int> = emptyList(),    // rank thresholds for the top-N segmented control (rank charts)
+)
 
 @Serializable
-private data class ChartSeries(val label: String, val color: String, val points: List<ChartPoint>)
+private data class ChartSeries(
+    val label: String,
+    val color: String,
+    val points: List<ChartPoint>,
+    val country: String? = null,    // for the country filter
+    val badge: String? = null,      // shown after the label in the legend (e.g. the current rank)
+)
 
 @Serializable
 private data class ChartPoint(val t: Long, val v: Int)
@@ -75,10 +96,21 @@ private fun AppKeywordCoverage.toCoverageView(opportunities: List<KeywordOpportu
             entry.history.mapNotNull { p -> p.rank?.let { ChartPoint(p.capturedAt.toEpochMilliseconds(), it) } }
         if (points.isEmpty()) null else entry to points
     }.mapIndexed { index, (entry, points) ->
-        // "term · COUNTRY" so the same term across storefronts stays distinguishable in the legend + tooltip.
-        ChartSeries("${entry.keyword.term} · ${entry.keyword.country}", PALETTE[index % PALETTE.size], points)
+        // "term · COUNTRY" so the same term across storefronts stays distinguishable in the legend + tooltip;
+        // `country` drives the country filter, `badge` shows the current rank right in the legend.
+        ChartSeries(
+            label = "${entry.keyword.term} · ${entry.keyword.country}",
+            color = PALETTE[index % PALETTE.size],
+            points = points,
+            country = entry.keyword.country,
+            badge = entry.rank?.let { "#$it" },
+        )
     }
-    val chartData = ChartData(yInvert = true, series = series)
+    val chartData = ChartData(
+        yInvert = true,
+        series = series,
+        filters = ChartFilters(country = true, period = listOf(1, 7, 30), top = listOf(5, 25, 100)),
+    )
 
     return AppCoverageView(
         layout = LayoutView(app.name, "apps"),

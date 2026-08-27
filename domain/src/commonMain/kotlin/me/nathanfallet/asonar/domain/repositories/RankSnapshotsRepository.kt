@@ -3,6 +3,7 @@ package me.nathanfallet.asonar.domain.repositories
 import me.nathanfallet.asonar.domain.models.application.Pagination
 import me.nathanfallet.asonar.domain.models.snapshots.RankSnapshot
 import me.nathanfallet.asonar.domain.models.snapshots.RankSnapshotPayload
+import kotlin.time.Instant
 
 /** Records and reads the rank history of our apps on the keywords. */
 interface RankSnapshotsRepository {
@@ -26,7 +27,7 @@ interface RankSnapshotsRepository {
     /** The latest rank of [appId] on every keyword, in one read (keyed by keyword id). */
     suspend fun latestByKeywordForApp(appId: Long): Map<Long, RankSnapshot>
 
-    /** The full rank history of [appId] on every keyword, newest first, in one read (keyed by keyword id). */
-    suspend fun historyByKeywordForApp(appId: Long): Map<Long, List<RankSnapshot>>
+    /** The rank history of [appId] since [since] on every keyword, newest first, in one read (by keyword id). */
+    suspend fun historyByKeywordForApp(appId: Long, since: Instant): Map<Long, List<RankSnapshot>>
 
 }

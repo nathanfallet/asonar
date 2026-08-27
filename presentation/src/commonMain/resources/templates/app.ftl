@@ -53,7 +53,10 @@
 
     <#if view.hasChart>
         <div class="card chart-card">
-            <div class="card-head">Évolution du rang dans le temps</div>
+            <div class="card-head chart-head">
+                <span>Évolution du rang dans le temps</span>
+                <div class="chart-controls"></div>
+            </div>
             <div class="rank-chart" data-chart="${view.chartJson}"></div>
         </div>
     </#if>

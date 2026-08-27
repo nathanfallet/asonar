@@ -10,6 +10,8 @@ import me.nathanfallet.asonar.domain.repositories.KeywordsRepository
 import me.nathanfallet.asonar.domain.repositories.PopularitySnapshotsRepository
 import me.nathanfallet.asonar.domain.repositories.RankSnapshotsRepository
 import kotlin.math.roundToInt
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 
 class GetAppKeywordCoverageUseCaseImpl(
     private val appsRepository: AppsRepository,
@@ -22,9 +24,9 @@ class GetAppKeywordCoverageUseCaseImpl(
         val app = appsRepository.get(appId) ?: return null
         val keywords = keywordsRepository.list(Pagination(limit = 0))
             .filter { it.store == app.store }
-        // Batch-load the app's whole rank history + every keyword's popularity once, instead of two
-        // queries per keyword (the N+1). History is newest-first per keyword.
-        val historyByKeyword = rankSnapshotsRepository.historyByKeywordForApp(app.id)
+        // Batch-load the app's rank history (last 30 days — what the chart shows) + every keyword's
+        // popularity once, instead of two queries per keyword (the N+1). History is newest-first per keyword.
+        val historyByKeyword = rankSnapshotsRepository.historyByKeywordForApp(app.id, Clock.System.now() - 30.days)
         val popularityByKeyword = popularitySnapshotsRepository.latestByKeyword()
         val entries = keywords.map { keyword ->
             val history = historyByKeyword[keyword.id].orEmpty()
