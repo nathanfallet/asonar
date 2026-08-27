@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
@@ -45,6 +46,20 @@ class AppRatingSnapshotsDatabaseRepository(
                 payload.averageRating,
                 payload.capturedAt,
             )
+        }
+
+    override suspend fun createAll(payloads: List<AppRatingSnapshotPayload>): List<AppRatingSnapshot> =
+        if (payloads.isEmpty()) emptyList()
+        else transactionManager.suspendTransaction {
+            AppRatingSnapshots.batchInsert(payloads) { p ->
+                this[AppRatingSnapshots.store] = p.store
+                this[AppRatingSnapshots.storeAppId] = p.storeAppId
+                this[AppRatingSnapshots.country] = p.country
+                this[AppRatingSnapshots.name] = p.name
+                this[AppRatingSnapshots.ratingCount] = p.ratingCount
+                this[AppRatingSnapshots.averageRating] = p.averageRating
+                this[AppRatingSnapshots.capturedAt] = p.capturedAt
+            }.map { AppRatingSnapshots.toSnapshot(it) }
         }
 
     override suspend fun listForApp(

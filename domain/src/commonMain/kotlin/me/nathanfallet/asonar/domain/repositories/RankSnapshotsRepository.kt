@@ -10,6 +10,9 @@ interface RankSnapshotsRepository {
     /** Records a rank reading. */
     suspend fun create(payload: RankSnapshotPayload): RankSnapshot
 
+    /** Records many readings in a single batch insert (one statement, one transaction). */
+    suspend fun createAll(payloads: List<RankSnapshotPayload>): List<RankSnapshot>
+
     /** Lists the rank history of an app on a keyword, newest first. */
     suspend fun listForKeywordAndApp(
         keywordId: Long,

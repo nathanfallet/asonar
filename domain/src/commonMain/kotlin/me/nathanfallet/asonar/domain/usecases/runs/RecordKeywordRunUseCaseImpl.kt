@@ -24,8 +24,11 @@ class RecordKeywordRunUseCaseImpl(
                 PopularitySnapshotPayload(payload.keywordId, value, payload.capturedAt)
             )
         }
-        val ranks = payload.ranks.map { reading ->
-            rankSnapshotsRepository.create(
+        // Each snapshot kind is written in ONE batch insert (one statement, one transaction) instead of
+        // a create()-per-row: a fetch records ~200 app-ratings + top-10 + ranks, so per-row inserts meant
+        // ~215 fsync'd commits per fetch (the DB's dominant cost — see docs/database-optimization.md).
+        val ranks = rankSnapshotsRepository.createAll(
+            payload.ranks.map { reading ->
                 RankSnapshotPayload(
                     payload.keywordId,
                     reading.appId,
@@ -33,10 +36,10 @@ class RecordKeywordRunUseCaseImpl(
                     reading.totalResults,
                     payload.capturedAt,
                 )
-            )
-        }
-        val topApps = payload.topApps.map { reading ->
-            topAppSnapshotsRepository.create(
+            }
+        )
+        val topApps = topAppSnapshotsRepository.createAll(
+            payload.topApps.map { reading ->
                 TopAppSnapshotPayload(
                     keywordId = payload.keywordId,
                     position = reading.position,
@@ -47,12 +50,12 @@ class RecordKeywordRunUseCaseImpl(
                     averageRating = reading.averageRating,
                     capturedAt = payload.capturedAt,
                 )
-            )
-        }
+            }
+        )
         // App ratings are keyed by (store, storeAppId, country), NOT the keyword — so the history is
         // shared across every keyword the app shows up in, and the velocity uses them all.
-        val appRatings = payload.appRatings.map { reading ->
-            appRatingSnapshotsRepository.create(
+        val appRatings = appRatingSnapshotsRepository.createAll(
+            payload.appRatings.map { reading ->
                 AppRatingSnapshotPayload(
                     store = payload.store,
                     storeAppId = reading.storeAppId,
@@ -62,8 +65,8 @@ class RecordKeywordRunUseCaseImpl(
                     averageRating = reading.averageRating,
                     capturedAt = payload.capturedAt,
                 )
-            )
-        }
+            }
+        )
         return KeywordRunResult(popularity, ranks, topApps, appRatings)
     }
 

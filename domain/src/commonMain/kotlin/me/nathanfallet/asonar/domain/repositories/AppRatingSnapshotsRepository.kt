@@ -11,6 +11,9 @@ interface AppRatingSnapshotsRepository {
     /** Records one app-rating reading. */
     suspend fun create(payload: AppRatingSnapshotPayload): AppRatingSnapshot
 
+    /** Records many readings in a single batch insert (one statement, one transaction). */
+    suspend fun createAll(payloads: List<AppRatingSnapshotPayload>): List<AppRatingSnapshot>
+
     /** Lists an app's ratings history for a store and market, newest first. */
     suspend fun listForApp(
         store: Store,

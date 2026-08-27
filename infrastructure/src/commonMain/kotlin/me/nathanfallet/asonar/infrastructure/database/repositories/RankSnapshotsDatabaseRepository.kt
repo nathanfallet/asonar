@@ -10,6 +10,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
@@ -40,6 +41,18 @@ class RankSnapshotsDatabaseRepository(
                 payload.totalResults,
                 payload.capturedAt,
             )
+        }
+
+    override suspend fun createAll(payloads: List<RankSnapshotPayload>): List<RankSnapshot> =
+        if (payloads.isEmpty()) emptyList()
+        else transactionManager.suspendTransaction {
+            RankSnapshots.batchInsert(payloads) { p ->
+                this[RankSnapshots.keywordId] = p.keywordId
+                this[RankSnapshots.appId] = p.appId
+                this[RankSnapshots.rank] = p.rank
+                this[RankSnapshots.totalResults] = p.totalResults
+                this[RankSnapshots.capturedAt] = p.capturedAt
+            }.map { RankSnapshots.toSnapshot(it) }
         }
 
     override suspend fun listForKeywordAndApp(

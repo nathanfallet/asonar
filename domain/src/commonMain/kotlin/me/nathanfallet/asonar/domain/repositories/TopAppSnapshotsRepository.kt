@@ -9,6 +9,9 @@ interface TopAppSnapshotsRepository {
     /** Records one row of a keyword's top-of-results. */
     suspend fun create(payload: TopAppSnapshotPayload): TopAppSnapshot
 
+    /** Records many readings in a single batch insert (one statement, one transaction). */
+    suspend fun createAll(payloads: List<TopAppSnapshotPayload>): List<TopAppSnapshot>
+
     /**
      * Reads the most recent top-of-results of a keyword, ordered by position — i.e. the rows of the
      * latest observation.
