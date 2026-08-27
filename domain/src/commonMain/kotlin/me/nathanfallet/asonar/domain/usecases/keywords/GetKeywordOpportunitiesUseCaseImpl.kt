@@ -15,7 +15,7 @@ class GetKeywordOpportunitiesUseCaseImpl(
         val app = appsRepository.get(appId) ?: return null
         return keywordsRepository.list(Pagination(limit = 0))
             .filter { it.store == app.store }
-            .mapNotNull { scoreKeywordOpportunityUseCase(it.id, appId) }
+            .mapNotNull { scoreKeywordOpportunityUseCase(it, app) }
             // Best opportunity first; keywords we couldn't score (no score) sink to the bottom.
             .sortedByDescending { it.score ?: -1 }
     }

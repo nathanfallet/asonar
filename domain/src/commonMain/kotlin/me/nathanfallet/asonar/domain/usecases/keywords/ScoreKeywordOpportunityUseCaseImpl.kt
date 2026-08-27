@@ -1,5 +1,7 @@
 package me.nathanfallet.asonar.domain.usecases.keywords
 
+import me.nathanfallet.asonar.domain.models.apps.App
+import me.nathanfallet.asonar.domain.models.keywords.Keyword
 import me.nathanfallet.asonar.domain.models.keywords.KeywordOpportunity
 import me.nathanfallet.asonar.domain.repositories.*
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppRatingHistoryUseCase
@@ -12,8 +14,6 @@ import kotlin.math.roundToInt
  * velocity — before running the pure [OpportunityScorer]. Weights/thresholds re-tune without a re-fetch.
  */
 class ScoreKeywordOpportunityUseCaseImpl(
-    private val keywordsRepository: KeywordsRepository,
-    private val appsRepository: AppsRepository,
     private val popularitySnapshotsRepository: PopularitySnapshotsRepository,
     private val keywordSignalsRepository: KeywordSignalsRepository,
     private val rankSnapshotsRepository: RankSnapshotsRepository,
@@ -21,15 +21,14 @@ class ScoreKeywordOpportunityUseCaseImpl(
     private val opportunityScorers: List<OpportunityScorer>,
 ) : ScoreKeywordOpportunityUseCase {
 
-    override suspend fun invoke(keywordId: Long, appId: Long): KeywordOpportunity? {
-        val keyword = keywordsRepository.get(keywordId) ?: return null
-        val app = appsRepository.get(appId) ?: return null
+    // The keyword and app are passed in (the caller already listed them) — no per-keyword re-fetch.
+    override suspend fun invoke(keyword: Keyword, app: App): KeywordOpportunity? {
         val scorer = opportunityScorers.firstOrNull { it.store == keyword.store } ?: return null
 
-        val signals = keywordSignalsRepository.getLatestForKeyword(keywordId)
+        val signals = keywordSignalsRepository.getLatestForKeyword(keyword.id)
         val competitors = signals?.competitors.orEmpty()
-        val popularity = popularitySnapshotsRepository.getLatestForKeyword(keywordId)?.popularity
-        val ourRankSnapshot = rankSnapshotsRepository.getLatestForKeywordAndApp(keywordId, appId)
+        val popularity = popularitySnapshotsRepository.getLatestForKeyword(keyword.id)?.popularity
+        val ourRankSnapshot = rankSnapshotsRepository.getLatestForKeywordAndApp(keyword.id, app.id)
         val ourVelocity = getAppRatingHistoryUseCase(keyword.store, app.storeAppId, keyword.country)
             .ratingsPer30d
 

@@ -32,8 +32,6 @@ val domainModule: Module = module {
             get(),
             get(),
             get(),
-            get(),
-            get(),
             getAll()
         )
     }
