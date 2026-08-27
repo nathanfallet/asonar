@@ -92,6 +92,21 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
   toutes les lignes ; une pagination server-side naïve renverrait « la moitié des données » et casserait le tri.
   Donc soit tri+filtre+pagination **tous server-side et cohérents**, soit on garde le chargement complet tant que
   ça tient. Ne pas bâcler (une pagination mal faite = pire que pas de pagination).
+- **Concurrents + découverte de mots-clés** (double idée) :
+    - **(1) Tracker des apps concurrentes** — utile *en soi* : suivre les **rangs** (et avis) d'une app qu'on
+      ne possède pas (« celle-ci, on la surveille »). Concept d'app concurrente, ou juste une app ajoutée, à
+      trancher.
+    - **(2) Découvrir des mots-clés candidats** (une *source de candidats*, pas du scoring — aujourd'hui c'est
+      l'agent qui propose) depuis :
+        - les **suggestions d'Apple Search Ads** (endpoint de recommandations de keywords — on est **déjà
+          authentifiés** sur ASA via kdriver) : **meilleure source** car les suggestions **viennent avec le
+          volume** (Apple ne suggère pas du random) → on évite les candidats qui floorent ;
+        - les **titres / sous-titres / descriptions des concurrents** (les termes qu'ils indexent) ;
+        - les **avis** — les nôtres **et** ceux des concurrents → les mots qui reviennent souvent = des idées
+          de mots-clés qu'on n'aurait pas indexés.
+    - **UX** : ça sort des **suggestions**, on **coche** celles qui nous intéressent, on clique **Ajouter** →
+      seuls les cochés sont ajoutés (beaucoup seront génériques/non pertinents). Question ouverte : la méthode
+      d'extraction (récupération des avis, dédup, filtrage du bruit).
 - **Play Store** (multi-store) : sources Play (search/ranking + popularité + short description). Archi prête.
 - **Vraie migration DB** (aujourd'hui `SchemaUtils.create` + `ALTER`/drop manuels).
 - **Scale du scoring** : cacher notre vélocité par marché dans l'agrégat + matérialiser le score pour trier 10k en SQL.
