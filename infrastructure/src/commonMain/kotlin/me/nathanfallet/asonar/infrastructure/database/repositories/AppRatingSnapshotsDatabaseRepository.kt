@@ -7,12 +7,17 @@ import me.nathanfallet.asonar.domain.models.snapshots.AppRatingSnapshotPayload
 import me.nathanfallet.asonar.domain.repositories.AppRatingSnapshotsRepository
 import me.nathanfallet.asonar.infrastructure.database.TransactionManager
 import me.nathanfallet.asonar.infrastructure.database.tables.AppRatingSnapshots
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class AppRatingSnapshotsDatabaseRepository(
@@ -97,5 +102,42 @@ class AppRatingSnapshotsDatabaseRepository(
                 .map { AppRatingSnapshots.toSnapshot(it) }
                 .firstOrNull()
         }
+
+    // Latest recorded rating per app in a market, in one read (the gate before re-recording checks these).
+    // Join to a MAX(captured_at) GROUP BY store_app_id derived table restricted to the apps we're asking
+    // about, matched back through the (store, store_app_id, country, captured_at) index.
+    override suspend fun latestByAppIds(
+        store: Store,
+        country: String,
+        storeAppIds: Collection<String>,
+    ): Map<String, AppRatingSnapshot> {
+        if (storeAppIds.isEmpty()) return emptyMap()
+        return transactionManager.suspendTransaction {
+            val ids = storeAppIds.toList()
+            val maxAt = AppRatingSnapshots.capturedAt.max().alias("max_at")
+            val latest = AppRatingSnapshots
+                .select(AppRatingSnapshots.storeAppId, maxAt)
+                .where {
+                    (AppRatingSnapshots.store eq store) and
+                            (AppRatingSnapshots.country eq country) and
+                            (AppRatingSnapshots.storeAppId inList ids)
+                }
+                .groupBy(AppRatingSnapshots.storeAppId)
+                .alias("latest")
+            AppRatingSnapshots
+                .join(
+                    latest, JoinType.INNER,
+                    onColumn = AppRatingSnapshots.storeAppId,
+                    otherColumn = latest[AppRatingSnapshots.storeAppId],
+                    additionalConstraint = {
+                        (AppRatingSnapshots.capturedAt eq latest[maxAt]) and
+                                (AppRatingSnapshots.store eq store) and
+                                (AppRatingSnapshots.country eq country)
+                    },
+                )
+                .selectAll()
+                .associate { it[AppRatingSnapshots.storeAppId] to AppRatingSnapshots.toSnapshot(it) }
+        }
+    }
 
 }

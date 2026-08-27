@@ -92,11 +92,6 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
   toutes les lignes ; une pagination server-side naïve renverrait « la moitié des données » et casserait le tri.
   Donc soit tri+filtre+pagination **tous server-side et cohérents**, soit on garde le chargement complet tant que
   ça tient. Ne pas bâcler (une pagination mal faite = pire que pas de pagination).
-- **⚡ Audit perfs SQL / index** (prioritaire, la page app commence à ramer) : passer toutes les requêtes en
-  `EXPLAIN`, vérifier les index (les colonnes de filtre/jointure : `keywordId`, `appId`, `capturedAt`, les
-  uniques `term+store+country` / `store+storeAppId`), traquer les **N+1** sur `/apps/{id}` (couverture +
-  opportunités lisent les snapshots **par mot-clé** → coût linéaire en nb de mots-clés). Symptôme : lenteur qui
-  croît avec le nombre de mots-clés suivis. Matérialiser/agréger si besoin.
 - **Play Store** (multi-store) : sources Play (search/ranking + popularité + short description). Archi prête.
 - **Vraie migration DB** (aujourd'hui `SchemaUtils.create` + `ALTER`/drop manuels).
 - **Scale du scoring** : cacher notre vélocité par marché dans l'agrégat + matérialiser le score pour trier 10k en SQL.
@@ -104,6 +99,12 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
 
 ## Livré récemment (au-delà des 5)
 
+- **Perfs DB** (audit `performance_schema` + `EXPLAIN`, index tous vérifiés OK) : (1) writes d'un fetch en
+  **batch/1 transaction** (`createAll`, ~215 commits/fetch → ~5) ; (2) **N+1 lecture tué** — opportunités/
+  couverture/liste chargent les « derniers » snapshots en **batch via JOIN `MAX(captured_at) GROUP BY`**
+  (scan d'index couvrant/loose + `ref` 1 ligne/mot-clé, tient à l'échelle), `ScoreKeyword` devenu pur ;
+  (3) **gating d'enregistrement des notes** (comme le gating du fetch) : une note d'app n'est ré-écrite que si
+  le compte a bougé (& ≥ 1h) ou après ≥ 24h → ≥ 1 point/jour sans gonfler la plus grosse table.
 - **Le cerveau — modèle « force de mur »** : `wallStrength` = pondération **position × usage-titre × notes** du
   top-of-results (un #1 qui n'utilise pas le terme, ou l'utilise avec peu d'avis, = place faible → passable),
     + **notre vélocité vs la leur** (`velocityAdvantage`). Option B (signaux précalculés au fetch → re-tune des

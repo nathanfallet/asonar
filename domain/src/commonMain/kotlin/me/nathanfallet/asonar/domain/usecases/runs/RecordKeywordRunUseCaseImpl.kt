@@ -10,6 +10,7 @@ import me.nathanfallet.asonar.domain.repositories.AppRatingSnapshotsRepository
 import me.nathanfallet.asonar.domain.repositories.PopularitySnapshotsRepository
 import me.nathanfallet.asonar.domain.repositories.RankSnapshotsRepository
 import me.nathanfallet.asonar.domain.repositories.TopAppSnapshotsRepository
+import kotlin.time.Duration.Companion.hours
 
 class RecordKeywordRunUseCaseImpl(
     private val popularitySnapshotsRepository: PopularitySnapshotsRepository,
@@ -52,10 +53,28 @@ class RecordKeywordRunUseCaseImpl(
                 )
             }
         )
-        // App ratings are keyed by (store, storeAppId, country), NOT the keyword — so the history is
-        // shared across every keyword the app shows up in, and the velocity uses them all.
+        // App ratings are keyed by (store, storeAppId, country), NOT the keyword — the history is shared
+        // across every keyword the app shows up in. So an app that recurs across many keywords fetched
+        // back-to-back would write a near-identical row each time; gate it: record a new point only when
+        // the count actually moved (and it's been at least RATING_MIN_AGE), or it's been RATING_MAX_AGE
+        // (so we always keep at least a daily point even when nothing moves). Keeps the history useful
+        // without bloating the biggest table.
+        val lastByApp = appRatingSnapshotsRepository.latestByAppIds(
+            payload.store,
+            payload.country,
+            payload.appRatings.map { it.storeAppId },
+        )
         val appRatings = appRatingSnapshotsRepository.createAll(
-            payload.appRatings.map { reading ->
+            payload.appRatings.filter { reading ->
+                val last = lastByApp[reading.storeAppId]
+                val age = last?.let { payload.capturedAt - it.capturedAt }
+                when {
+                    last == null || age == null -> true
+                    age >= RATING_MAX_AGE -> true
+                    age >= RATING_MIN_AGE && reading.ratingCount != last.ratingCount -> true
+                    else -> false
+                }
+            }.map { reading ->
                 AppRatingSnapshotPayload(
                     store = payload.store,
                     storeAppId = reading.storeAppId,
@@ -68,6 +87,14 @@ class RecordKeywordRunUseCaseImpl(
             }
         )
         return KeywordRunResult(popularity, ranks, topApps, appRatings)
+    }
+
+    companion object {
+        /** Never re-record an app's rating more than once an hour, even while it's climbing. */
+        private val RATING_MIN_AGE = 1.hours
+
+        /** But always keep at least a daily point, even when the count doesn't move. */
+        private val RATING_MAX_AGE = 24.hours
     }
 
 }

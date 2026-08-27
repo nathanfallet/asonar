@@ -25,4 +25,11 @@ interface AppRatingSnapshotsRepository {
     /** Reads an app's most recent ratings for a store and market. */
     suspend fun getLatestForApp(store: Store, storeAppId: String, country: String): AppRatingSnapshot?
 
+    /** The latest recorded rating of each of [storeAppIds] in a market, in one read (keyed by storeAppId). */
+    suspend fun latestByAppIds(
+        store: Store,
+        country: String,
+        storeAppIds: Collection<String>,
+    ): Map<String, AppRatingSnapshot>
+
 }
