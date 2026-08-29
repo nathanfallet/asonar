@@ -15,6 +15,7 @@ import me.nathanfallet.asonar.infrastructure.messaging.*
 import me.nathanfallet.asonar.infrastructure.messaging.handlers.FetchKeywordHandler
 import me.nathanfallet.asonar.infrastructure.scraping.*
 import org.koin.core.module.Module
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 /**
@@ -71,6 +72,12 @@ val Application.infrastructureModule: Module
             }
             single<AppSearchSource> { ItunesAppSearchSource(get()) }
             single<AppSubtitleSource> { AppStoreSubtitleSource(get()) }
+            // Declared as the CONCRETE type + `bind`, unlike its neighbours: two `single<Interface>`
+            // share one Koin key, so the second silently replaces the first and `getAll()` returns
+            // only one. Harmless while there is a single implementation per interface, but it is the
+            // trap the multi-store / multi-source work will hit — see docs/ROADMAP.md. New bindings
+            // use the style that scales; the others get converted with the first second implementation.
+            single { AppStoreReviewSource(get()) } bind AppReviewSource::class
             single {
                 BrowserHolder(
                     scope = application,
@@ -97,6 +104,7 @@ val Application.infrastructureModule: Module
             // Repositories
             single<AppsRepository> { AppsDatabaseRepository(get()) }
             single<KeywordsRepository> { KeywordsDatabaseRepository(get()) }
+            single<AppReviewsRepository> { AppReviewsDatabaseRepository(get()) }
             single<KeywordCandidatesRepository> { KeywordCandidatesDatabaseRepository(get()) }
             single<PopularitySnapshotsRepository> { PopularitySnapshotsDatabaseRepository(get()) }
             single<RankSnapshotsRepository> { RankSnapshotsDatabaseRepository(get()) }

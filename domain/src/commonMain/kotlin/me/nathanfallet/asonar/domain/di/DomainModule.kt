@@ -2,6 +2,8 @@ package me.nathanfallet.asonar.domain.di
 
 import me.nathanfallet.asonar.domain.usecases.apps.*
 import me.nathanfallet.asonar.domain.usecases.keywords.*
+import me.nathanfallet.asonar.domain.usecases.reviews.FetchAppReviewsUseCase
+import me.nathanfallet.asonar.domain.usecases.reviews.FetchAppReviewsUseCaseImpl
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCaseImpl
 import org.koin.core.module.Module
@@ -44,6 +46,9 @@ val domainModule: Module = module {
     }
     single<ListKeywordCandidatesUseCase> { ListKeywordCandidatesUseCaseImpl(get(), get()) }
     single<ReviewKeywordCandidatesUseCase> { ReviewKeywordCandidatesUseCaseImpl(get(), get(), get()) }
+
+    // Reviews — raw material for keyword discovery; review sources are selected per store.
+    single<FetchAppReviewsUseCase> { FetchAppReviewsUseCaseImpl(get(), get(), get(), getAll()) }
 
     // Runs — internal: written by the fetch pipeline, never exposed to the API/MCP/web.
     single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get(), get()) }

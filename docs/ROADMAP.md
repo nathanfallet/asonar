@@ -103,6 +103,23 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
       pipeline (candidats, statuts, revue web/MCP) est déjà là et les prendra sans code en plus.
       ⚠️ Elles ne connaissent **pas** le volume (contrairement à ASA) → leurs candidats sortent avec
       `popularity = null` et il faut les fetcher pour savoir s'ils floorent.
+    - 🚧 **PRÉREQUIS — le correctif DI décrit sur l'item Play Store doit être fait ICI, avant la 2e source.**
+      C'est ce chantier qui déclenche le piège en premier, pas le Play Store : ces sources sont **plusieurs sur
+      le MÊME store** (App Store), et c'est justement le cas que le design vise (`filter { it.store == … }`
+      renvoie une *liste*). Or trois `single<KeywordSuggestionSource> { … }` = une seule survit → la découverte
+      ne ferait tourner **que la dernière déclarée**, en silence, et on croirait juste que les nouvelles sources
+      ne trouvent rien. Passer les 5 bindings en `single { Concret(…) } bind Interface::class` **d'abord**, avec
+      le test qui verrouille « N sources déclarées, N sources vues ».
+    - **Avis — comment les récupérer (vérifié en live, 2026-08-29).** Feed RSS iTunes, officiel et gratuit,
+      sans browser : `https://itunes.apple.com/{pays}/rss/customerreviews/page={n}/id={adamId}/sortBy=mostRecent/json`.
+        - **50 avis par page, pages 1 à 10 → 500 avis max** par (app, storefront) ; `page=11` → HTTP 400.
+        - Champs utiles par entrée : `content` (le corps de l'avis), `title`, `im:rating`, `author`,
+          `updated`, `im:version` — tout ce qu'il faut pour extraire des termes.
+        - ⚠️ **Couverture partielle, à encaisser sans traiter ça comme une erreur** : certaines apps renvoient
+          **zéro** entrée de façon stable (vérifié : Jow FR → 0 sur deux essais, NutriMaxing FR → 0), là où
+          d'autres répondent normalement (Good Pizza FR, Instagram US → 50/page). Donc « feed vide » = cas
+          normal, pas une panne — et cette source ne peut pas être le canal principal, seulement un complément
+          d'ASA.
 - **Play Store** (multi-store) : sources Play (search/ranking + popularité + short description + suggestions
   de mots-clés). L'archi domaine est prête — les interfaces `AppSearchSource`, `KeywordPopularitySource`,
   `AppSubtitleSource`, `KeywordSuggestionSource` et `OpportunityScorer` portent toutes un `store`, et les use
@@ -120,8 +137,18 @@ Débloque toute l'analyse « qui met le terme dans son titre vs son sous-titre �
       `getAll()` rend bien les deux. Vérifié en test :
       `single<Interface>` × 2 → `[PLAY_STORE]` (une seule) ; `concret + bind` × 2 → `[PLAY_STORE, APP_STORE]`.
     - **Latent aujourd'hui** : vérifié, aucun type n'est déclaré deux fois dans les 3 modules DI, donc rien
-      n'est cassé tant qu'il n'y a qu'une implémentation par interface. À corriger **avec** la première source
-      Play, pas avant — et ajouter un test qui verrouille « deux sources déclarées, deux sources vues ».
+      n'est cassé tant qu'il n'y a qu'une implémentation par interface.
+    - ⏱️ **Mais ce n'est pas le Play Store qui déclenchera le piège en premier** : les **sources de découverte
+      restantes** (métadonnées concurrents, avis) ajoutent déjà plusieurs `KeywordSuggestionSource` sur le même
+      store — voir le prérequis noté sur cet item-là. Si ce chantier passe avant, le correctif sera déjà fait
+      et il n'y aura plus qu'à déclarer les sources Play dans le même style.
+- **Ajouter un concurrent depuis les résultats d'un mot-clé** (UX, petit) : sur `/keywords/{id}`, la carte
+  « Top des résultats » liste déjà les apps qui rankent, avec leur `storeAppId` et leur nom — il manque juste un
+  bouton par ligne pour l'enregistrer comme app suivie en `COMPETITOR`. C'est le moment où on *voit* le
+  concurrent qu'on veut surveiller ; aujourd'hui il faut relever l'adamId à la main et passer par l'API/MCP.
+  Tout est déjà là côté domaine (`GetOrCreateAppUseCase(AppPayload(store, storeAppId, name, COMPETITOR))`,
+  idempotent) → un POST web + un bouton. À prévoir : masquer/afficher « déjà suivi » pour les apps déjà
+  enregistrées, et ne pas proposer nos propres apps (`OWNED`).
 - **Vraie migration DB** (aujourd'hui `SchemaUtils.create` + `ALTER`/drop manuels).
 - **Scale du scoring** : cacher notre vélocité par marché dans l'agrégat + matérialiser le score pour trier 10k en SQL.
 - **Description via lookup** (API officielle, gratuite) pour nourrir l'analyse.
