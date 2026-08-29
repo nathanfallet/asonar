@@ -9,11 +9,13 @@ import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import me.nathanfallet.asonar.presentation.routes.apps.AppCoverageRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppRatingsRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.apps.AppsRoutesDependencies
+import me.nathanfallet.asonar.presentation.routes.keywords.KeywordCandidatesRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.keywords.KeywordOpportunitiesRoutesDependencies
 import me.nathanfallet.asonar.presentation.routes.keywords.KeywordsRoutesDependencies
 import me.nathanfallet.asonar.presentation.tools.apps.appCoverageTools
 import me.nathanfallet.asonar.presentation.tools.apps.appRatingsTools
 import me.nathanfallet.asonar.presentation.tools.apps.appsTools
+import me.nathanfallet.asonar.presentation.tools.keywords.keywordCandidatesTools
 import me.nathanfallet.asonar.presentation.tools.keywords.keywordOpportunitiesTools
 import me.nathanfallet.asonar.presentation.tools.keywords.keywordsTools
 import org.koin.ktor.ext.get
@@ -35,6 +37,7 @@ fun mcpServer(
     appCoverageDependencies: AppCoverageRoutesDependencies,
     keywordsDependencies: KeywordsRoutesDependencies,
     keywordOpportunitiesDependencies: KeywordOpportunitiesRoutesDependencies,
+    keywordCandidatesDependencies: KeywordCandidatesRoutesDependencies,
 ): Server = Server(
     Implementation(name = MCP_SERVER_NAME, version = MCP_SERVER_VERSION),
     ServerOptions(
@@ -46,6 +49,7 @@ fun mcpServer(
     appCoverageTools(appCoverageDependencies)
     keywordsTools(keywordsDependencies)
     keywordOpportunitiesTools(keywordOpportunitiesDependencies)
+    keywordCandidatesTools(keywordCandidatesDependencies)
 }
 
 /**

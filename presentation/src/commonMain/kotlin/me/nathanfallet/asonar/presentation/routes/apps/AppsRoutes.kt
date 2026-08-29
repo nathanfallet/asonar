@@ -12,6 +12,7 @@ import me.nathanfallet.asonar.domain.usecases.apps.DeleteAppUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.GetOrCreateAppUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.ListAppsUseCase
+import me.nathanfallet.asonar.presentation.extensions.parseAppRole
 import me.nathanfallet.asonar.presentation.extensions.parseStore
 import me.nathanfallet.asonar.presentation.mappers.apps.toAppResponse
 
@@ -30,7 +31,9 @@ fun Route.appsRoutes(dependencies: AppsRoutesDependencies) = with(dependencies) 
     post<AppsApi, RegisterAppRequest> { _, request ->
         val store = parseStore(request.store)
             ?: return@post call.respond(HttpStatusCode.BadRequest, "Unknown store: ${request.store}")
-        val app = getOrCreateAppUseCase(AppPayload(store, request.storeAppId, request.name))
+        val role = parseAppRole(request.role)
+            ?: return@post call.respond(HttpStatusCode.BadRequest, "Unknown role: ${request.role}")
+        val app = getOrCreateAppUseCase(AppPayload(store, request.storeAppId, request.name, role))
         call.respond(app.toAppResponse())
     }
     get<AppsApi.Id> { params ->

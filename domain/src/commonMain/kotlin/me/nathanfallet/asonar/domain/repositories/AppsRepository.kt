@@ -2,6 +2,7 @@ package me.nathanfallet.asonar.domain.repositories
 
 import me.nathanfallet.asonar.domain.models.apps.App
 import me.nathanfallet.asonar.domain.models.apps.AppPayload
+import me.nathanfallet.asonar.domain.models.apps.AppRole
 import me.nathanfallet.asonar.domain.models.apps.Store
 
 /** Reads and writes the apps we optimize. */
@@ -18,6 +19,9 @@ interface AppsRepository {
 
     /** Registers an app. */
     suspend fun create(payload: AppPayload): App
+
+    /** Changes what an app is followed for. @return The updated app, or null if it doesn't exist. */
+    suspend fun updateRole(id: Long, role: AppRole): App?
 
     /** Removes an app. @return True if a row was deleted. */
     suspend fun delete(id: Long): Boolean

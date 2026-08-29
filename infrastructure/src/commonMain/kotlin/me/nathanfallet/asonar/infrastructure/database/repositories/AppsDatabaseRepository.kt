@@ -2,6 +2,7 @@ package me.nathanfallet.asonar.infrastructure.database.repositories
 
 import me.nathanfallet.asonar.domain.models.apps.App
 import me.nathanfallet.asonar.domain.models.apps.AppPayload
+import me.nathanfallet.asonar.domain.models.apps.AppRole
 import me.nathanfallet.asonar.domain.models.apps.Store
 import me.nathanfallet.asonar.domain.repositories.AppsRepository
 import me.nathanfallet.asonar.infrastructure.database.TransactionManager
@@ -9,10 +10,7 @@ import me.nathanfallet.asonar.infrastructure.database.tables.Apps
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insertAndGetId
-import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.*
 import kotlin.time.Clock
 
 class AppsDatabaseRepository(
@@ -55,9 +53,20 @@ class AppsDatabaseRepository(
                 it[store] = payload.store
                 it[storeAppId] = payload.storeAppId
                 it[name] = payload.name
+                it[role] = payload.role
                 it[createdAt] = now
             }.value
-            App(newId, payload.store, payload.storeAppId, payload.name, now)
+            App(newId, payload.store, payload.storeAppId, payload.name, payload.role, now)
+        }
+
+    override suspend fun updateRole(id: Long, role: AppRole): App? =
+        transactionManager.suspendTransaction {
+            val updated = Apps.update({ Apps.id eq id }) { it[Apps.role] = role }
+            if (updated == 0) null
+            else Apps.selectAll()
+                .where { Apps.id eq id }
+                .map { Apps.toApp(it) }
+                .firstOrNull()
         }
 
     override suspend fun delete(id: Long): Boolean =

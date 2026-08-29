@@ -9,5 +9,6 @@ fun App.toAppResponse() = AppResponse(
     store = store.name,
     storeAppId = storeAppId,
     name = name,
+    role = role.name,
     createdAt = createdAt,
 )

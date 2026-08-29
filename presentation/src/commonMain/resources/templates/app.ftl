@@ -4,10 +4,14 @@
         <a class="back" href="/apps">← Toutes les apps</a>
         <h1>${view.appName}</h1>
         <p class="lede">
+            <span class="role role-${view.roleClass}">${view.roleLabel}</span>
             <span class="chip">${view.store}</span>
             <span class="country">${view.storeAppId}</span>
             · Ranké sur <strong>${view.rankedCount}</strong>/${view.totalCount} mots-clés suivis
         </p>
+        <div class="head-actions">
+            <a class="btn" href="/apps/${view.appId}/candidates">Découvrir des mots-clés</a>
+        </div>
     </section>
 
     <#assign s = view.summary>

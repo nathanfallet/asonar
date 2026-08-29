@@ -16,7 +16,7 @@ val domainModule: Module = module {
     single<ListAppsUseCase> { ListAppsUseCaseImpl(get()) }
     single<GetAppUseCase> { GetAppUseCaseImpl(get()) }
     single<GetOrCreateAppUseCase> { GetOrCreateAppUseCaseImpl(get()) }
-    single<DeleteAppUseCase> { DeleteAppUseCaseImpl(get()) }
+    single<DeleteAppUseCase> { DeleteAppUseCaseImpl(get(), get()) }
     single<GetAppKeywordCoverageUseCase> { GetAppKeywordCoverageUseCaseImpl(get(), get(), get(), get()) }
     single<RefreshAppKeywordsUseCase> { RefreshAppKeywordsUseCaseImpl(get(), get()) }
     single<GetAppRatingHistoryUseCase> { GetAppRatingHistoryUseCaseImpl(get()) }
@@ -36,6 +36,14 @@ val domainModule: Module = module {
     single<GetLatestTopAppsUseCase> { GetLatestTopAppsUseCaseImpl(get()) }
     single<ListRankHistoryUseCase> { ListRankHistoryUseCaseImpl(get()) }
     single<RefreshKeywordUseCase> { RefreshKeywordUseCaseImpl(get(), get()) }
+
+    // Discovery — the front of the funnel: sources propose candidates, a human/agent accepts them.
+    // Suggestion sources are selected per store via getAll + filter { it.store == ... }.
+    single<DiscoverKeywordCandidatesUseCase> {
+        DiscoverKeywordCandidatesUseCaseImpl(get(), get(), get(), get(), getAll())
+    }
+    single<ListKeywordCandidatesUseCase> { ListKeywordCandidatesUseCaseImpl(get(), get()) }
+    single<ReviewKeywordCandidatesUseCase> { ReviewKeywordCandidatesUseCaseImpl(get(), get(), get()) }
 
     // Runs — internal: written by the fetch pipeline, never exposed to the API/MCP/web.
     single<RecordKeywordRunUseCase> { RecordKeywordRunUseCaseImpl(get(), get(), get(), get()) }

@@ -13,10 +13,7 @@ import me.nathanfallet.asonar.infrastructure.database.repositories.*
 import me.nathanfallet.asonar.infrastructure.health.DatabaseHealthService
 import me.nathanfallet.asonar.infrastructure.messaging.*
 import me.nathanfallet.asonar.infrastructure.messaging.handlers.FetchKeywordHandler
-import me.nathanfallet.asonar.infrastructure.scraping.AppStoreSubtitleSource
-import me.nathanfallet.asonar.infrastructure.scraping.AsaKeywordPopularitySource
-import me.nathanfallet.asonar.infrastructure.scraping.BrowserHolder
-import me.nathanfallet.asonar.infrastructure.scraping.ItunesAppSearchSource
+import me.nathanfallet.asonar.infrastructure.scraping.*
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -88,10 +85,19 @@ val Application.infrastructureModule: Module
                     graphqlEndpoint = application.environment.config.property("asa.graphqlEndpoint").getString(),
                 )
             }
+            // Suggestions are asked *for a given app*, so unlike the popularity source this one takes
+            // no configured adamId: the caller passes the app's own store id.
+            single<KeywordSuggestionSource> {
+                AsaKeywordSuggestionSource(
+                    browserHolder = get(),
+                    graphqlEndpoint = application.environment.config.property("asa.graphqlEndpoint").getString(),
+                )
+            }
 
             // Repositories
             single<AppsRepository> { AppsDatabaseRepository(get()) }
             single<KeywordsRepository> { KeywordsDatabaseRepository(get()) }
+            single<KeywordCandidatesRepository> { KeywordCandidatesDatabaseRepository(get()) }
             single<PopularitySnapshotsRepository> { PopularitySnapshotsDatabaseRepository(get()) }
             single<RankSnapshotsRepository> { RankSnapshotsDatabaseRepository(get()) }
             single<TopAppSnapshotsRepository> { TopAppSnapshotsDatabaseRepository(get()) }

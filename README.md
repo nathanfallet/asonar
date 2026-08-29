@@ -15,7 +15,9 @@ recommendations — the useful parts of a tool like AppFigures, running locally 
 ## How it works
 
 1. You **track keywords** (a term, a store, a country) — via the web UI, the API, or by asking an
-   agent through MCP.
+   agent through MCP. Or you let asonar **find them for you**: keyword discovery asks Apple Search
+   Ads for terms related to your app and returns each one *with its real popularity*, so you review a
+   list of measured candidates instead of guessing (see [Discovery](#discovery)).
 2. Adding a keyword **queues a background fetch**: asonar searches the store, records the
    top-of-results (who ranks, who puts the term in their title/subtitle, each app's review count and
    **30-day review velocity**), reads the keyword's real Apple popularity, and notes where *your* app
@@ -62,6 +64,8 @@ and reuse it. Stop the app gracefully (don't `pkill` the Chrome) to keep the ses
   - `/apps` → `/apps/{id}` — a tracked app's ranking coverage: the opportunity **recommendations**,
     an interactive **rank-over-time chart** (filter by country / Top-N / period), and the full
     keyword table.
+  - `/apps/{id}/candidates` — keyword **discovery**: run a pass, then tick the terms worth tracking
+    and hit *Ajouter*. Dismissed terms never come back.
   - `/mcp-guide` — how to connect the MCP server to Claude Code / Desktop.
 - **REST API**
   - `GET/POST /api/keywords`, `GET/DELETE /api/keywords/{id}`, `POST /api/keywords/{id}/refresh`,
@@ -70,11 +74,46 @@ and reuse it. Stop the app gracefully (don't `pkill` the Chrome) to keep the ses
   - `GET /api/app-coverage?appId=` — a tracked app's ranking coverage
   - `GET /api/keyword-opportunities?appId=` — the scored recommendations
   - `GET /api/app-ratings?...` — an app's ratings history + 30-day velocity
+  - `GET/POST /api/keyword-candidates?appId=` — list discovered candidates / run a discovery pass,
+    `POST /api/keyword-candidates/review` — accept (start tracking) or dismiss them
 - **MCP** — `POST http://localhost:8080/mcp` (Streamable HTTP). Tools:
   - apps: `register_app`, `list_apps`, `get_app`, `delete_app`
   - keywords: `track_keyword`, `untrack_keyword`, `list_keywords`, `get_keyword`, `refresh_keyword`
+  - discovery: `discover_keywords`, `list_keyword_candidates`, `review_keyword_candidates`
   - history: `get_keyword_popularity_history`, `get_keyword_top_apps`, `get_keyword_ranks`, `get_app_ratings`
   - the brain: `get_app_coverage`, `get_keyword_opportunities`
+
+## Discovery
+
+Guessing keywords does not work. Measured on a real app: 208 hand-picked terms that described the
+product perfectly — 100 % of them at popularity **5**, the floor of Apple's index. App Store search
+volume sits on a few broad category heads, not on the vocabulary that describes an app best.
+
+So asonar asks Apple instead. Discovery replays Apple Search Ads' own keyword recommendations through
+the same authenticated session as the popularity fetch, and **every suggestion comes back with its
+popularity** — a candidate that floors is dropped before it ever costs a fetch.
+
+- **Seeds are required.** Sources expand *from* a term. Left unseeded, Apple answers with the store's
+  top charts (`instagram`, `snapchat`…) rather than anything about your app, so a pass without seeds
+  returns nothing. By default asonar seeds from your best-measured tracked keywords in each market.
+- **Candidates are proposals, never tracked data.** They live in their own table with a review state,
+  scoped to the app they were found for. You accept (the term starts being tracked, and its first
+  fetch is queued) or dismiss — and **dismissing sticks**: re-running discovery merges new sources
+  into a known candidate but never resurrects a rejected one.
+- Review them in the web UI (`/apps/{id}/candidates`), over the API, or hand the whole loop to an
+  agent: `discover_keywords` → `list_keyword_candidates` → `review_keyword_candidates`.
+
+> Apple's suggestions are also the fastest way to find the **foreign terms that carry volume in a
+> non-native storefront** — e.g. German terms with real French volume — which is where the walls are
+> lowest (see [Scoring](#scoring)).
+
+## Competitors
+
+An app is registered with a **role**: `OWNED` (one you optimize) or `COMPETITOR` (one you watch).
+Tracking is identical either way — a fetch already records the rank of *every* registered app on the
+store and snapshots the ratings of everything it sees — so a competitor gets its ranking and review
+history for free. The role says what asonar does with it: opportunities are scored *for* your apps,
+while competitors answer "where do they beat us" and (soon) "what terms do they index".
 
 ## Scoring
 

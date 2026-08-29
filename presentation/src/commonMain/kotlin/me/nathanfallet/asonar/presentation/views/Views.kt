@@ -56,6 +56,32 @@ data class RankRowView(
     val capturedAt: String,
 )
 
+/**
+ * An app's discovery page: the terms sources proposed, waiting to be taken or buried. Everything is
+ * pre-formatted so the template stays logic-free, like the other views.
+ */
+data class AppCandidatesView(
+    val layout: LayoutView,
+    val appId: Long,
+    val appName: String,
+    val newCount: Int,
+    val addedCount: Int,
+    val dismissedCount: Int,
+    val countriesValue: String,   // pre-filled markets for the discovery form
+    val rows: List<CandidateRowView>,
+)
+
+data class CandidateRowView(
+    val id: Long,
+    val term: String,
+    val country: String,
+    val popularityLabel: String,
+    val popularitySort: Int,      // for the sortable table: unknown sinks to the bottom
+    val atFloor: Boolean,         // popularity <= 5: the floor of Apple's index, nobody searches it
+    val sources: List<String>,
+    val detail: String,
+)
+
 /** The apps tab: pick one of our tracked apps to see its keyword coverage. */
 data class AppsListView(
     val layout: LayoutView,
@@ -67,14 +93,19 @@ data class AppOptionView(
     val name: String,
     val store: String,
     val storeAppId: String,
+    val roleLabel: String,
+    val roleClass: String,
 )
 
 /** One app's ranking coverage: stats + the multi-line rank chart + the per-keyword table. */
 data class AppCoverageView(
     val layout: LayoutView,
+    val appId: Long,
     val appName: String,
     val store: String,
     val storeAppId: String,
+    val roleLabel: String,
+    val roleClass: String,
     val rankedCount: Int,
     val totalCount: Int,
     val summary: CoverageSummaryView,

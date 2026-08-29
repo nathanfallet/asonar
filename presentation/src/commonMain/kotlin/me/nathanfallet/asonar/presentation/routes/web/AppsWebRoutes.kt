@@ -2,21 +2,25 @@ package me.nathanfallet.asonar.presentation.routes.web
 
 import io.ktor.http.*
 import io.ktor.server.freemarker.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import me.nathanfallet.asonar.api.Serialization
-import me.nathanfallet.asonar.domain.models.apps.AppKeywordCoverage
-import me.nathanfallet.asonar.domain.models.apps.CoverageSummary
-import me.nathanfallet.asonar.domain.models.apps.KeywordCoverageEntry
-import me.nathanfallet.asonar.domain.models.apps.RankPoint
+import me.nathanfallet.asonar.domain.models.apps.*
+import me.nathanfallet.asonar.domain.models.keywords.CandidateStatus
+import me.nathanfallet.asonar.domain.models.keywords.KeywordCandidate
 import me.nathanfallet.asonar.domain.models.keywords.KeywordOpportunity
 import me.nathanfallet.asonar.domain.models.keywords.OpportunityVerdict
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppKeywordCoverageUseCase
+import me.nathanfallet.asonar.domain.usecases.apps.GetAppUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.ListAppsUseCase
 import me.nathanfallet.asonar.domain.usecases.apps.RefreshAppKeywordsUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.DiscoverKeywordCandidatesUseCase
 import me.nathanfallet.asonar.domain.usecases.keywords.GetKeywordOpportunitiesUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.ListKeywordCandidatesUseCase
+import me.nathanfallet.asonar.domain.usecases.keywords.ReviewKeywordCandidatesUseCase
 import me.nathanfallet.asonar.presentation.views.*
 import kotlin.math.max
 import kotlin.math.round
@@ -28,12 +32,29 @@ data class AppsWebRoutesDependencies(
     val getAppKeywordCoverageUseCase: GetAppKeywordCoverageUseCase,
     val getKeywordOpportunitiesUseCase: GetKeywordOpportunitiesUseCase,
     val refreshAppKeywordsUseCase: RefreshAppKeywordsUseCase,
+    val getAppUseCase: GetAppUseCase,
+    val discoverKeywordCandidatesUseCase: DiscoverKeywordCandidatesUseCase,
+    val listKeywordCandidatesUseCase: ListKeywordCandidatesUseCase,
+    val reviewKeywordCandidatesUseCase: ReviewKeywordCandidatesUseCase,
 )
 
 /** The "Apps" tab: pick an app, then see its recommendations + ranking coverage (stats + chart + table). */
 fun Route.appsWebRoutes(dependencies: AppsWebRoutesDependencies) = with(dependencies) {
     get("/apps") {
-        val apps = listAppsUseCase().map { AppOptionView(it.id, it.name, it.store.name, it.storeAppId) }
+        // Ours first, competitors after: the list is a launcher for our own optimization work, the
+        // watched apps are context.
+        val apps = listAppsUseCase()
+            .sortedBy { it.role.ordinal }
+            .map {
+                AppOptionView(
+                    it.id,
+                    it.name,
+                    it.store.name,
+                    it.storeAppId,
+                    it.role.label(),
+                    it.role.cssClass(),
+                )
+            }
         call.respond(
             FreeMarkerContent("apps.ftl", mapOf("view" to AppsListView(LayoutView("Apps", "apps"), apps))),
         )
@@ -50,7 +71,91 @@ fun Route.appsWebRoutes(dependencies: AppsWebRoutesDependencies) = with(dependen
         call.application.launch { refreshAppKeywordsUseCase(id) }
         call.respond(FreeMarkerContent("app.ftl", mapOf("view" to coverage.toCoverageView(opportunities))))
     }
+
+    // --- Discovery: propose terms, then take or bury them (see DiscoverKeywordCandidatesUseCase) ---
+
+    get("/apps/{id}/candidates") {
+        val id = call.parameters["id"]?.toLongOrNull()
+        val app = id?.let { getAppUseCase(it) }
+        if (app == null) {
+            call.respond(HttpStatusCode.NotFound, "App not found")
+            return@get
+        }
+        val pending = listKeywordCandidatesUseCase(app.id, setOf(CandidateStatus.NEW)).orEmpty()
+        val added = listKeywordCandidatesUseCase(app.id, setOf(CandidateStatus.ADDED)).orEmpty()
+        val dismissed = listKeywordCandidatesUseCase(app.id, setOf(CandidateStatus.DISMISSED)).orEmpty()
+        call.respond(
+            FreeMarkerContent(
+                "candidates.ftl",
+                mapOf(
+                    "view" to AppCandidatesView(
+                        layout = LayoutView("${app.name} · Découverte", "apps"),
+                        appId = app.id,
+                        appName = app.name,
+                        newCount = pending.size,
+                        addedCount = added.size,
+                        dismissedCount = dismissed.size,
+                        countriesValue = pending.map { it.country }.distinct().sorted().joinToString(", "),
+                        rows = pending.map { it.toCandidateRow() },
+                    )
+                ),
+            )
+        )
+    }
+    post("/apps/{id}/candidates/discover") {
+        val id = call.parameters["id"]?.toLongOrNull()
+        if (id == null) {
+            call.respond(HttpStatusCode.NotFound, "App not found")
+            return@post
+        }
+        val params = call.receiveParameters()
+        val countries = params["countries"].splitList().map { it.uppercase() }
+        val seeds = params["seeds"].splitList().map { it.lowercase() }
+        // Fire-and-forget, like the coverage auto-refresh: a pass drives a real browser, one request
+        // per seed and per market, so it takes minutes — far too long to hold an HTML form open.
+        call.application.launch {
+            discoverKeywordCandidatesUseCase(id, countries.ifEmpty { null }, seeds.ifEmpty { null })
+        }
+        call.respondRedirect("/apps/$id/candidates")
+    }
+    post("/apps/{id}/candidates/review") {
+        val id = call.parameters["id"]?.toLongOrNull()
+        if (id == null) {
+            call.respond(HttpStatusCode.NotFound, "App not found")
+            return@post
+        }
+        val params = call.receiveParameters()
+        val ids = params.getAll("candidate").orEmpty().mapNotNull { it.toLongOrNull() }
+        // Two submit buttons, one checkbox list: the button that was pressed says what to do.
+        when (params["action"]) {
+            "accept" -> reviewKeywordCandidatesUseCase.accept(ids)
+            "dismiss" -> reviewKeywordCandidatesUseCase.dismiss(ids)
+        }
+        call.respondRedirect("/apps/$id/candidates")
+    }
 }
+
+/** Reads a comma/space separated form field into a clean list. */
+private fun String?.splitList(): List<String> =
+    orEmpty().split(",", " ").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+
+private fun KeywordCandidate.toCandidateRow() = CandidateRowView(
+    id = id,
+    term = term,
+    country = country,
+    popularityLabel = popularity?.toString() ?: "—",
+    // Unknown popularity sorts below everything measured, rather than above it as a 0 would.
+    popularitySort = popularity ?: -1,
+    atFloor = (popularity ?: Int.MAX_VALUE) <= POPULARITY_FLOOR,
+    sources = sources.map { it.name }.sorted(),
+    detail = detail.orEmpty(),
+)
+
+/**
+ * Apple's search index bottoms out at 5 — a term there is essentially never searched, however winnable
+ * it looks. Flagged in the review list so the floor is obvious at a glance.
+ */
+private const val POPULARITY_FLOOR = 5
 
 // --- Chart wire format (embedded as JSON, rendered client-side by /js/chart.js) ---
 
@@ -114,9 +219,12 @@ private fun AppKeywordCoverage.toCoverageView(opportunities: List<KeywordOpportu
 
     return AppCoverageView(
         layout = LayoutView(app.name, "apps"),
+        appId = app.id,
         appName = app.name,
         store = app.store.name,
         storeAppId = app.storeAppId,
+        roleLabel = app.role.label(),
+        roleClass = app.role.cssClass(),
         rankedCount = summary.rankedCount,
         totalCount = summary.trackedCount,
         summary = summary.toSummaryView(),
@@ -125,6 +233,17 @@ private fun AppKeywordCoverage.toCoverageView(opportunities: List<KeywordOpportu
         recommendations = opportunities.map { it.toRecommendationRow() },
         rows = entries.map { it.toRow() },
     )
+}
+
+/** French label for a role — the web UI is in French, the wire format keeps the enum name. */
+private fun AppRole.label() = when (this) {
+    AppRole.OWNED -> "À nous"
+    AppRole.COMPETITOR -> "Concurrent"
+}
+
+private fun AppRole.cssClass() = when (this) {
+    AppRole.OWNED -> "owned"
+    AppRole.COMPETITOR -> "competitor"
 }
 
 private fun KeywordOpportunity.toRecommendationRow(): RecommendationRowView {
