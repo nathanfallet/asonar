@@ -16,6 +16,7 @@ import me.nathanfallet.asonar.api.Serialization
 import me.nathanfallet.asonar.infrastructure.messaging.MessageBroker
 import me.nathanfallet.asonar.infrastructure.messaging.MessageHandlerResult
 import kotlin.time.Clock
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Publishes a [T] to [exchange] with [routingKey], serialized to JSON. */
 suspend inline fun <reified T> MessageBroker.publish(exchange: String, routingKey: String, message: T) {
@@ -112,7 +113,17 @@ suspend inline fun AMQPChannel.handleWithRetryAndDead(
     val context = HandleWithRetryAndDeadContext(retryCount, tryAgain, dead)
     return try {
         block(context)
-    } catch (e: Exception) {
+    } catch (ce: CancellationException) {
+        // Cancellation is not a handling failure, it is the consumer being torn down. Dead-lettering
+        // it would drop a message nobody really attempted, and swallowing it would leave the
+        // coroutine running past its own cancellation. The broker redelivers whatever is still
+        // unacknowledged when the channel goes down.
+        throw ce
+    } catch (e: Throwable) {
+        // This used to be `catch (e: Exception)`, which let every `Error` through — IllegalAccessError,
+        // NoClassDefFoundError, StackOverflowError. Nothing below ran for those: no result, so the
+        // caller neither acked nor nacked and the delivery stayed unsettled forever, holding a
+        // prefetch slot for the life of the connection.
         val reason = e.toString()
         if (context.tryAgain) return MessageHandlerResult.Failure(reason, requeue = false)
         if (context.dead) sendToDeadLetterQueue(delivery, reason)
