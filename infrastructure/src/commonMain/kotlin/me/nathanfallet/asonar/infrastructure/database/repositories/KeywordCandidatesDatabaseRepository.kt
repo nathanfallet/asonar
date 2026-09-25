@@ -62,11 +62,19 @@ class KeywordCandidatesDatabaseRepository(
             val existing = KeywordCandidates.selectAll()
                 .where { KeywordCandidates.appId inList merged.keys.map { it.appId }.distinct() }
                 .map { KeywordCandidates.toCandidate(it) }
-                .associateBy { Key(it.appId, it.term, it.country) }
+                // Same normalisation as the incoming keys: a row stored as "fr" must match an
+                // incoming "FR", otherwise the lookup misses and the term is treated as fresh —
+                // straight into a duplicate-key violation on the unique index.
+                .associateBy { Key(it.appId, it.term.trim(), it.country.trim().uppercase()) }
 
             val (known, fresh) = merged.entries.partition { existing.containsKey(it.key) }
 
-            val created = if (fresh.isEmpty()) emptyList() else KeywordCandidates.batchInsert(fresh) { (key, group) ->
+            // `ignore = true` because the last word on uniqueness belongs to MySQL, not to Kotlin:
+            // the index compares under the column collation, which is accent- and kana-insensitive,
+            // so two terms that `==` says are different (メニュ vs メニュー, katakana vs hiragana) are
+            // the SAME row for the database. That collision is unrepresentable in the in-memory fold
+            // above, and without ignore it aborted the whole discovery pass over one term.
+            val created = if (fresh.isEmpty()) emptyList() else KeywordCandidates.batchInsert(fresh, ignore = true) { (key, group) ->
                 this[KeywordCandidates.appId] = key.appId
                 this[KeywordCandidates.term] = key.term
                 this[KeywordCandidates.country] = key.country
