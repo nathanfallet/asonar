@@ -11,12 +11,19 @@ import dev.kourier.amqp.states.DeclaredExchangeBuilder
 import dev.kourier.amqp.states.DeclaredQueueBuilder
 import dev.kourier.amqp.states.declaredExchange
 import dev.kourier.amqp.states.declaredQueue
+import io.ktor.callid.KtorCallIdContextElement
+import io.ktor.http.*
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.slf4j.MDCContext
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import me.nathanfallet.asonar.api.Serialization
 import me.nathanfallet.asonar.infrastructure.messaging.MessageBroker
 import me.nathanfallet.asonar.infrastructure.messaging.MessageHandlerResult
-import kotlin.time.Clock
+import org.slf4j.MDC
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Clock
+import kotlin.uuid.Uuid
 
 /** Publishes a [T] to [exchange] with [routingKey], serialized to JSON. */
 suspend inline fun <reified T> MessageBroker.publish(exchange: String, routingKey: String, message: T) {
@@ -157,3 +164,29 @@ val Map<String, Field>.xDeathCount: Long?
         val xDeath = xDeathArray?.value?.firstOrNull() as? Field.Table
         return (xDeath?.value?.get("count") as? Field.Long)?.value
     }
+
+/** The MDC key logback prints (`%X{call-id}`), the same one `configureMonitoring` fills for HTTP calls. */
+const val CALL_ID_MDC = "call-id"
+
+/**
+ * The current request id as an AMQP header, so a fetch queued by `POST /api/keywords` logs under the
+ * id of the request that queued it. Empty outside a request (the id lives in the coroutine context,
+ * put there by the `CallId` plugin).
+ */
+suspend fun mapOfRequestId(): Map<String, Field> =
+    currentCoroutineContext()[KtorCallIdContextElement]
+        ?.let { mapOf(HttpHeaders.XRequestId to Field.LongString(it.callId)) }
+        ?: emptyMap()
+
+/**
+ * Runs [block] under the request id carried by this delivery, both in the coroutine context (so
+ * whatever it publishes carries the id further) and in the MDC (so its logs print it). A message with
+ * no id, published outside any request, gets a fresh one: the logs of one fetch still group together.
+ */
+suspend fun <T> AMQPResponse.Channel.Message.Delivery.withRequestId(block: suspend () -> T): T {
+    val callId = (message.properties.headers?.get(HttpHeaders.XRequestId) as? Field.LongString)?.value
+        ?: Uuid.random().toString()
+    val mdc = (MDC.getCopyOfContextMap() ?: emptyMap()) + (CALL_ID_MDC to callId)
+    return withContext(KtorCallIdContextElement(callId) + MDCContext(mdc)) { block() }
+}
+

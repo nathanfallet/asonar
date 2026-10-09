@@ -63,6 +63,7 @@ kotlin {
                 api(libs.ktor.server.status.pages)
                 api(libs.ktor.server.cors)
                 api(libs.ktor.server.call.logging)
+                api(libs.ktor.server.call.id)
                 api(libs.ktor.server.freemarker)
                 api(libs.mcp.server)
             }
@@ -74,6 +75,8 @@ kotlin {
                 implementation(libs.tests.mockk)
                 // The real client: a route test then also proves the client builds the right request.
                 implementation(projects.client)
+                // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
+                implementation(libs.logback.classic)
             }
         }
     }
