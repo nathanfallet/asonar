@@ -5,6 +5,9 @@ import dev.kourier.amqp.channel.AMQPChannel
 import dev.kourier.amqp.channel.queueBind
 import dev.kourier.amqp.connection.AMQPConnection
 import dev.kourier.amqp.robust.createRobustAMQPConnection
+import dev.kourier.amqp.opentelemetry.withTracing
+import io.opentelemetry.api.OpenTelemetry
+import io.opentelemetry.api.trace.Tracer
 import kotlinx.coroutines.CoroutineScope
 import me.nathanfallet.asonar.infrastructure.extensions.exchangeDeclareWithAdditionalResources
 import me.nathanfallet.asonar.infrastructure.extensions.queueDeclareWithAdditionalResources
@@ -22,6 +25,7 @@ class RabbitMQFactoryImpl(
     private val port: Int,
     private val user: String,
     private val password: String,
+    private val tracer: Tracer = OpenTelemetry.noop().getTracer("asonar"),
 ) : RabbitMQFactory {
 
     private lateinit var amqpConnection: AMQPConnection
@@ -37,7 +41,9 @@ class RabbitMQFactoryImpl(
             }
         }
 
-        amqpChannel = amqpConnection.openChannel().apply {
+        // Traced: a publish carries the trace context in its headers and the consumer continues it, so
+        // the HTTP call that queued a fetch and the fetch itself land in one trace.
+        amqpChannel = amqpConnection.openChannel().withTracing(tracer).apply {
             basicQos(1u)
 
             exchangeDeclareWithAdditionalResources(dlx = true, dead = true) {

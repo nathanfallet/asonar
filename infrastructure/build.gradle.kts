@@ -60,6 +60,7 @@ kotlin {
                 api(libs.mysql)
 
                 api(libs.kourier.client.robust)
+                api(libs.bundles.opentelemetry)
                 api(libs.kdriver.core)
 
                 api(libs.ktor.client.core)
@@ -76,6 +77,7 @@ kotlin {
                 implementation(kotlin("test"))
                 implementation(libs.tests.mockk)
                 implementation(libs.tests.coroutines)
+                implementation(libs.opentelemetry.sdk.testing)
                 implementation(libs.h2)
             }
         }
