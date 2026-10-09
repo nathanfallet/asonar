@@ -14,10 +14,8 @@ object Apps : LongIdTable() {
     val name = text("name")
 
     /**
-     * Defaulted so an existing database keeps working after the column is added: every app registered
-     * before roles existed was one of ours. ⚠️ `SchemaUtils.create` does NOT alter an existing table —
-     * on a database that predates this column, run:
-     * `ALTER TABLE Apps ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'OWNED';`
+     * Defaulted because every app registered before roles existed was one of ours. A database older
+     * than this column needs it added by hand once — see the header of `V1__baseline.sql`.
      */
     val role = enumerationByName("role", 20, AppRole::class).default(AppRole.OWNED)
     val createdAt = timestamp("created_at")

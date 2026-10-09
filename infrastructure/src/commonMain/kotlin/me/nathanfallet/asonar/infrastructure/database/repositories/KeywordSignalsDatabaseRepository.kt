@@ -11,7 +11,6 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -19,12 +18,6 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 class KeywordSignalsDatabaseRepository(
     private val transactionManager: TransactionManager,
 ) : KeywordSignalsRepository {
-
-    init {
-        transactionManager.transaction {
-            SchemaUtils.create(KeywordSignalSnapshots)
-        }
-    }
 
     override suspend fun create(payload: KeywordSignalsPayload): KeywordSignals =
         transactionManager.suspendTransaction {
