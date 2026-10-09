@@ -71,6 +71,8 @@ kotlin {
 
                 api(libs.koin.ktor)
                 api(libs.ktor.server.core)
+                api(libs.ktor.server.call.id)
+                api(libs.kotlinx.coroutines.slf4j)
             }
         }
         val commonTest by getting {
@@ -78,6 +80,8 @@ kotlin {
                 implementation(kotlin("test"))
                 implementation(libs.tests.mockk)
                 implementation(libs.tests.coroutines)
+                // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
+                implementation(libs.logback.classic)
                 implementation(libs.h2)
             }
         }

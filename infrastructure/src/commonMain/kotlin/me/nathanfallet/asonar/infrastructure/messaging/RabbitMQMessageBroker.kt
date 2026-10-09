@@ -5,6 +5,8 @@ import dev.kourier.amqp.Field
 import dev.kourier.amqp.channel.AMQPChannel
 import dev.kourier.amqp.properties
 import io.ktor.util.logging.*
+import me.nathanfallet.asonar.infrastructure.extensions.mapOfRequestId
+import me.nathanfallet.asonar.infrastructure.extensions.withRequestId
 import kotlin.coroutines.cancellation.CancellationException
 
 private val logger = KtorSimpleLogger("RabbitMQMessageBroker")
@@ -14,13 +16,14 @@ class RabbitMQMessageBroker(
 ) : MessageBroker {
 
     override suspend fun publish(exchange: String, routingKey: String, message: String, headers: Map<String, Field>?) {
+        val requestId = mapOfRequestId()
         rabbitMQFactory.getChannel().basicPublish(
             body = message.toByteArray(),
             exchange = exchange,
             routingKey = routingKey,
             properties = properties {
                 deliveryMode = 2u // persistent
-                this@properties.headers = headers ?: emptyMap()
+                this@properties.headers = (headers ?: emptyMap()) + requestId
             },
         )
     }
@@ -31,40 +34,43 @@ class RabbitMQMessageBroker(
             queue = queue,
             noAck = false,
             onDelivery = { delivery ->
-                // Last line of defence: a delivery that leaves this block unsettled is never
-                // redelivered while the connection lives, and holds a prefetch slot forever. Fill the
-                // prefetch with those and the consumer stops draining the queue entirely.
-                var settled = false
-                try {
-                    when (val result = handler(channel, delivery)) {
-                        is MessageHandlerResult.Success -> {
-                            settled = true
-                            channel.basicAck(delivery.message.deliveryTag)
-                        }
+                // Every log of this delivery, the last-resort ones included, carries its request id.
+                delivery.withRequestId {
+                    // Last line of defence: a delivery that leaves this block unsettled is never
+                    // redelivered while the connection lives, and holds a prefetch slot forever. Fill
+                    // the prefetch with those and the consumer stops draining the queue entirely.
+                    var settled = false
+                    try {
+                        when (val result = handler(channel, delivery)) {
+                            is MessageHandlerResult.Success -> {
+                                settled = true
+                                channel.basicAck(delivery.message.deliveryTag)
+                            }
 
-                        is MessageHandlerResult.Failure -> {
-                            settled = true
-                            channel.basicNack(
-                                delivery.message.deliveryTag,
-                                requeue = result.requeue,
-                            )
+                            is MessageHandlerResult.Failure -> {
+                                settled = true
+                                channel.basicNack(
+                                    delivery.message.deliveryTag,
+                                    requeue = result.requeue,
+                                )
+                            }
                         }
+                    } catch (ce: CancellationException) {
+                        // Shutdown, not a bad message. The broker redelivers everything unacknowledged
+                        // once the channel drops, and nacking on a dying channel would fail anyway.
+                        throw ce
+                    } catch (e: Throwable) {
+                        logger.error(
+                            "Unhandled failure while delivering ${delivery.message.exchange}/" +
+                                    "${delivery.message.routingKey} (tag ${delivery.message.deliveryTag})",
+                            e,
+                        )
+                        // `settled` guards against settling twice: if the ack/nack above is what threw,
+                        // we do not know whether the broker saw it, and a second settle on the same tag
+                        // is a channel-level error that closes the channel and drops every other
+                        // in-flight delivery with it. Leave this one to the post-reconnect redelivery.
+                        if (!settled) settleUnhandled(channel, delivery)
                     }
-                } catch (ce: CancellationException) {
-                    // Shutdown, not a bad message. The broker redelivers everything unacknowledged
-                    // once the channel drops, and nacking on a dying channel would fail anyway.
-                    throw ce
-                } catch (e: Throwable) {
-                    logger.error(
-                        "Unhandled failure while delivering ${delivery.message.exchange}/" +
-                                "${delivery.message.routingKey} (tag ${delivery.message.deliveryTag})",
-                        e,
-                    )
-                    // `settled` guards against settling twice: if the ack/nack above is what threw,
-                    // we do not know whether the broker saw it, and a second settle on the same tag
-                    // is a channel-level error that closes the channel and drops every other
-                    // in-flight delivery with it. Leave this one to the post-reconnect redelivery.
-                    if (!settled) settleUnhandled(channel, delivery)
                 }
             },
         )
