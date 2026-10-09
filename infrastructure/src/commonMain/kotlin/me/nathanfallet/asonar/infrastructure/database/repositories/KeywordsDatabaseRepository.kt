@@ -11,7 +11,6 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.like
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
@@ -21,12 +20,6 @@ import kotlin.time.Clock
 class KeywordsDatabaseRepository(
     private val transactionManager: TransactionManager,
 ) : KeywordsRepository {
-
-    init {
-        transactionManager.transaction {
-            SchemaUtils.create(Keywords)
-        }
-    }
 
     override suspend fun list(pagination: Pagination): List<Keyword> =
         transactionManager.suspendTransaction {

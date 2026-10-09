@@ -13,7 +13,6 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.max
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
@@ -23,12 +22,6 @@ import kotlin.time.Instant
 class RankSnapshotsDatabaseRepository(
     private val transactionManager: TransactionManager,
 ) : RankSnapshotsRepository {
-
-    init {
-        transactionManager.transaction {
-            SchemaUtils.create(RankSnapshots)
-        }
-    }
 
     override suspend fun create(payload: RankSnapshotPayload): RankSnapshot =
         transactionManager.suspendTransaction {

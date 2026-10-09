@@ -72,6 +72,9 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.bundles.ktor.server.tests)
+                implementation(libs.tests.mockk)
+                // The real client: a route test then also proves the client builds the right request.
+                implementation(projects.client)
                 // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
                 implementation(libs.logback.classic)
             }
