@@ -25,6 +25,16 @@ ktor {
     docker {
         jreVersion.set(JavaVersion.VERSION_21)
         localImageName.set("asonar")
+        findProperty("imageTag")?.let { imageTag.set(it.toString()) }
+
+        // Published by CI: on every push to main (latest) and on each tag (see .github/workflows).
+        externalRegistry.set(
+            io.ktor.plugin.features.DockerImageRegistry.dockerHub(
+                appName = provider { "asonar" },
+                username = provider { "nathanfallet" },
+                password = providers.environmentVariable("DOCKER_HUB_PASSWORD"),
+            )
+        )
     }
 }
 

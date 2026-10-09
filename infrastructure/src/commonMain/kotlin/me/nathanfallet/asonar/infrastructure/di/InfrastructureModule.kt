@@ -10,7 +10,7 @@ import me.nathanfallet.asonar.domain.repositories.*
 import me.nathanfallet.asonar.domain.services.*
 import me.nathanfallet.asonar.infrastructure.database.*
 import me.nathanfallet.asonar.infrastructure.database.repositories.*
-import me.nathanfallet.asonar.infrastructure.health.DatabaseHealthService
+import me.nathanfallet.asonar.infrastructure.health.InfrastructureHealthService
 import me.nathanfallet.asonar.infrastructure.messaging.*
 import me.nathanfallet.asonar.infrastructure.messaging.handlers.FetchKeywordHandler
 import me.nathanfallet.asonar.infrastructure.scraping.*
@@ -48,7 +48,14 @@ val Application.infrastructureModule: Module
             }
             single<TransactionManager> { TransactionManagerImpl(get()) }
 
-            single<HealthService> { DatabaseHealthService(get()) }
+            single<HealthService> {
+                InfrastructureHealthService(
+                    databaseFactory = get(),
+                    rabbitMQFactory = get(),
+                    // Same switch as configureMessageBroker, which never starts the broker under test.
+                    messagingEnabled = application.environment.config.property("ktor.environment").getString() != "test",
+                )
+            }
 
             // Message broker (RabbitMQ via kourier) — the Application is the connection's scope
             single<RabbitMQFactory> {
