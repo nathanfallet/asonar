@@ -63,6 +63,7 @@ kotlin {
                 api(libs.ktor.server.status.pages)
                 api(libs.ktor.server.cors)
                 api(libs.ktor.server.call.logging)
+                api(libs.ktor.server.call.id)
                 api(libs.ktor.server.freemarker)
                 api(libs.mcp.server)
             }
@@ -71,6 +72,8 @@ kotlin {
             dependencies {
                 implementation(kotlin("test"))
                 implementation(libs.bundles.ktor.server.tests)
+                // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
+                implementation(libs.logback.classic)
             }
         }
     }
