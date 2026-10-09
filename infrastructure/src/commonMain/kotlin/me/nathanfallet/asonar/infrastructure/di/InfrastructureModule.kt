@@ -13,6 +13,9 @@ import me.nathanfallet.asonar.infrastructure.database.repositories.*
 import me.nathanfallet.asonar.infrastructure.health.InfrastructureHealthService
 import me.nathanfallet.asonar.infrastructure.messaging.*
 import me.nathanfallet.asonar.infrastructure.messaging.handlers.FetchKeywordHandler
+import me.nathanfallet.asonar.infrastructure.observability.OpenTelemetryMetricsService
+import me.nathanfallet.asonar.infrastructure.observability.TelemetryFactory
+import me.nathanfallet.asonar.infrastructure.observability.TelemetryFactoryImpl
 import me.nathanfallet.asonar.infrastructure.scraping.*
 import org.koin.core.module.Module
 import org.koin.dsl.bind
@@ -26,6 +29,13 @@ val Application.infrastructureModule: Module
     get() {
         val application = this
         return module {
+            // Telemetry (OpenTelemetry, configured by the OTEL_* environment variables)
+            single<TelemetryFactory> {
+                val environment = application.environment.config.property("ktor.environment").getString()
+                TelemetryFactoryImpl(enabled = environment != "test", environment = environment)
+            }
+            single<MetricsCollectorService> { OpenTelemetryMetricsService(get()) }
+
             // Database
             single {
                 DatabaseConfig(
@@ -41,7 +51,7 @@ val Application.infrastructureModule: Module
             single<DatabaseFactory> {
                 val config = get<DatabaseConfig>()
                 when (config.protocol) {
-                    "mysql" -> MySQLDatabaseFactory(config)
+                    "mysql" -> MySQLDatabaseFactory(config, get<TelemetryFactory>().getOpenTelemetry())
                     "h2" -> H2DatabaseFactory(config)
                     else -> throw IllegalArgumentException("Unsupported database protocol: ${config.protocol}")
                 }
@@ -65,6 +75,7 @@ val Application.infrastructureModule: Module
                     port = application.environment.config.property("rabbitmq.port").getString().toIntOrNull() ?: 5672,
                     user = application.environment.config.property("rabbitmq.user").getString(),
                     password = application.environment.config.property("rabbitmq.password").getString(),
+                    tracer = get<TelemetryFactory>().getTracer(),
                 )
             }
             single<MessageBroker> { RabbitMQMessageBroker(get()) }

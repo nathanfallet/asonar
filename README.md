@@ -144,7 +144,7 @@ Clean architecture, Kotlin + Ktor, four Gradle modules — dependencies point in
 | `app` | Ktor entrypoint, Koin wiring, configuration | all three |
 
 Stack: Kotlin 2.3 · Ktor 3.4 · Koin 4.1 (DI) · Exposed 1.5 (ORM) · Flyway (migrations) · HikariCP · MySQL 8.4 / H2 ·
-RabbitMQ (kourier) · kdriver (Chrome/CDP) · kotlinx serialization/datetime/coroutines · Kover.
+RabbitMQ (kourier) · OpenTelemetry · kdriver (Chrome/CDP) · kotlinx serialization/datetime/coroutines · Kover.
 
 Snapshots are append-only; reads assemble the current picture from history. Writes are batched (one
 transaction per fetch) and the read paths batch-load per keyword, so it stays fast as the history grows.
@@ -202,6 +202,26 @@ fails if a table expects something no migration creates.
 A database created before Flyway (by the old `SchemaUtils.create`) is recorded at version 1 on its
 first boot instead of being recreated. If its `Apps` table has no `role` column yet, add it first —
 the statement is at the top of `V1__baseline.sql`.
+
+## Observability
+
+asonar exports traces and metrics over OTLP with OpenTelemetry, configured by the standard `OTEL_*`
+environment variables. By default it sends to `localhost:4317`; the quickest way to look at it locally
+is [`grafana/otel-lgtm`](https://github.com/grafana/docker-otel-lgtm) (Grafana on `:3000`):
+
+```sh
+docker run -d -p 3000:3000 -p 4317:4317 -p 4318:4318 grafana/otel-lgtm
+```
+
+Without a collector, set `OTEL_SDK_DISABLED=true`, or the exporter warns at every export interval.
+
+- **Traces:** each HTTP call, the RabbitMQ publish and consume of the fetch it queues (one trace end to
+  end), and every SQL statement on MySQL.
+- **Metrics:** Ktor's HTTP server metrics, the Hikari pool, and asonar's own:
+  - `asonar.keyword.fetches` / `asonar.keyword.fetch.duration`, by store and by what was refreshed
+    (`asonar.refreshed.ranking`, `asonar.refreshed.popularity`; both false = the data was still fresh);
+  - `asonar.popularity.reads`, by `asonar.result` (`found` / `missing`). **`missing` climbing is the
+    alert to set**: on the App Store it almost always means the Apple Search Ads session expired.
 
 ## Data & privacy
 

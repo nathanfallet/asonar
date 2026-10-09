@@ -10,11 +10,13 @@ import me.nathanfallet.asonar.domain.repositories.*
 import me.nathanfallet.asonar.domain.services.AppSearchSource
 import me.nathanfallet.asonar.domain.services.AppSubtitleSource
 import me.nathanfallet.asonar.domain.services.KeywordPopularitySource
+import me.nathanfallet.asonar.domain.services.MetricsCollectorService
 import me.nathanfallet.asonar.domain.usecases.apps.GetAppRatingHistoryUseCase
 import me.nathanfallet.asonar.domain.usecases.runs.RecordKeywordRunUseCase
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.TimeSource
 
 class FetchKeywordUseCaseImpl(
     private val keywordsRepository: KeywordsRepository,
@@ -28,11 +30,13 @@ class FetchKeywordUseCaseImpl(
     private val keywordSignalsRepository: KeywordSignalsRepository,
     private val popularitySnapshotsRepository: PopularitySnapshotsRepository,
     private val topAppSnapshotsRepository: TopAppSnapshotsRepository,
+    private val metricsCollectorService: MetricsCollectorService,
 ) : FetchKeywordUseCase {
 
     override suspend fun invoke(keywordId: Long) {
         val keyword = keywordsRepository.get(keywordId) ?: return
         val now = Clock.System.now()
+        val started = TimeSource.Monotonic.markNow()
 
         // Independent age gates — the snapshots already carry capturedAt (no new state). Ranking and
         // popularity are refreshed on their OWN dates, independently of each other: if popularity is
@@ -42,7 +46,10 @@ class FetchKeywordUseCaseImpl(
         val lastPopularityAt = popularitySnapshotsRepository.getLatestForKeyword(keywordId)?.capturedAt
         val fetchRanking = lastRankingAt == null || now - lastRankingAt >= RANKING_MAX_AGE
         val fetchPopularity = lastPopularityAt == null || now - lastPopularityAt >= POPULARITY_MAX_AGE
-        if (!fetchRanking && !fetchPopularity) return
+        if (!fetchRanking && !fetchPopularity) {
+            metricsCollectorService.recordKeywordFetch(keyword.store, false, false, started.elapsedNow())
+            return
+        }
 
         val capturedAt = now
 
@@ -98,6 +105,7 @@ class FetchKeywordUseCaseImpl(
         val popularity = if (fetchPopularity) {
             popularitySources.firstOrNull { it.store == keyword.store }
                 ?.getPopularity(keyword.term, keyword.country)
+                .also { metricsCollectorService.recordPopularityRead(keyword.store, found = it != null) }
         } else {
             null
         }
@@ -138,6 +146,8 @@ class FetchKeywordUseCaseImpl(
                 )
             )
         }
+
+        metricsCollectorService.recordKeywordFetch(keyword.store, fetchRanking, fetchPopularity, started.elapsedNow())
     }
 
     companion object {

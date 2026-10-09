@@ -5,6 +5,7 @@ import io.ktor.server.netty.*
 import me.nathanfallet.asonar.domain.di.domainModule
 import me.nathanfallet.asonar.infrastructure.config.configureDatabase
 import me.nathanfallet.asonar.infrastructure.config.configureMessageBroker
+import me.nathanfallet.asonar.infrastructure.config.configureTelemetry
 import me.nathanfallet.asonar.infrastructure.di.infrastructureModule
 import me.nathanfallet.asonar.presentation.config.configureErrorHandling
 import me.nathanfallet.asonar.presentation.config.configureMcp
@@ -25,6 +26,7 @@ fun Application.module() {
             infrastructureModule,
         )
     }
+    configureTelemetry()
     configureDatabase()
     configureSerialization()
     configureErrorHandling()

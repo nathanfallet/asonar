@@ -62,6 +62,7 @@ kotlin {
                 api(libs.mysql)
 
                 api(libs.kourier.client.robust)
+                api(libs.bundles.opentelemetry)
                 api(libs.kdriver.core)
 
                 api(libs.ktor.client.core)
@@ -82,6 +83,7 @@ kotlin {
                 implementation(libs.tests.coroutines)
                 // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
                 implementation(libs.logback.classic)
+                implementation(libs.opentelemetry.sdk.testing)
                 implementation(libs.h2)
             }
         }
