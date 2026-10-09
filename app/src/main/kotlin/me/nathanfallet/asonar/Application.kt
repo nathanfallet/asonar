@@ -3,6 +3,7 @@ package me.nathanfallet.asonar
 import io.ktor.server.application.*
 import io.ktor.server.netty.*
 import me.nathanfallet.asonar.domain.di.domainModule
+import me.nathanfallet.asonar.infrastructure.config.configureDatabase
 import me.nathanfallet.asonar.infrastructure.config.configureMessageBroker
 import me.nathanfallet.asonar.infrastructure.di.infrastructureModule
 import me.nathanfallet.asonar.presentation.config.configureErrorHandling
@@ -24,6 +25,7 @@ fun Application.module() {
             infrastructureModule,
         )
     }
+    configureDatabase()
     configureSerialization()
     configureErrorHandling()
     configureMonitoring()

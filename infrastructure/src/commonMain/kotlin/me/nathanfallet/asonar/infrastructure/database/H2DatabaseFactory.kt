@@ -1,5 +1,6 @@
 package me.nathanfallet.asonar.infrastructure.database
 
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 
 /**
@@ -14,16 +15,20 @@ class H2DatabaseFactory(
     private val config: DatabaseConfig,
 ) : DatabaseFactory {
 
-    private val db: Database by lazy {
-        val url = if (config.directory.isBlank()) {
+    private val url: String by lazy {
+        if (config.directory.isBlank()) {
             "jdbc:h2:mem:${config.name};DB_CLOSE_DELAY=-1;MODE=MySQL;"
         } else {
             "jdbc:h2:file:${normalizeDirectory(config.directory)}/${config.name};MODE=MySQL;"
         }
-        Database.connect(url, "org.h2.Driver")
     }
 
+    private val db: Database by lazy { Database.connect(url, "org.h2.Driver") }
+
     override fun getDatabase(): Database = db
+
+    // Same MySQL scripts as production: H2 runs them in its MySQL compatibility mode.
+    override fun migrate() = Migrations.migrate(Flyway.configure().dataSource(url, "", ""))
 
     // A file-backed H2 is up for as long as the process is, same as in-memory.
     override fun isHealthy(): Boolean = true
