@@ -25,6 +25,16 @@ ktor {
     docker {
         jreVersion.set(JavaVersion.VERSION_21)
         localImageName.set("asonar")
+        findProperty("imageTag")?.let { imageTag.set(it.toString()) }
+
+        // Published by CI: on every push to main (latest) and on each tag (see .github/workflows).
+        externalRegistry.set(
+            io.ktor.plugin.features.DockerImageRegistry.dockerHub(
+                appName = provider { "asonar" },
+                username = provider { "nathanfallet" },
+                password = providers.environmentVariable("DOCKER_HUB_PASSWORD"),
+            )
+        )
     }
 }
 
@@ -44,6 +54,18 @@ dependencies {
     testImplementation(libs.kotlin.test.junit5)
     testRuntimeOnly(libs.junit.jupiter.engine)
     testImplementation(libs.h2)
+}
+
+// flyway-core and flyway-mysql each ship META-INF/services/org.flywaydb.core.extensibility.Plugin. Shadow
+// keeps only one by default; Flyway then loses its core extensions and the migration crashes at boot
+// (an NPE in PluginRegister), which no test catches since tests do not run on the fat jar. Merge the
+// service files, and keep the default "first wins" for everything else.
+tasks.shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+    filesNotMatching("META-INF/services/**") {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
 }
 
 tasks.test {

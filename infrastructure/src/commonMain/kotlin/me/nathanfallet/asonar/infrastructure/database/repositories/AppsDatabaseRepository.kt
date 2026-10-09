@@ -17,12 +17,6 @@ class AppsDatabaseRepository(
     private val transactionManager: TransactionManager,
 ) : AppsRepository {
 
-    init {
-        transactionManager.transaction {
-            SchemaUtils.create(Apps)
-        }
-    }
-
     override suspend fun list(): List<App> =
         transactionManager.suspendTransaction {
             Apps.selectAll()

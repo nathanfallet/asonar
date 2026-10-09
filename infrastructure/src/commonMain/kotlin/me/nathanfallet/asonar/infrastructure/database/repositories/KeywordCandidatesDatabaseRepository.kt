@@ -18,12 +18,6 @@ class KeywordCandidatesDatabaseRepository(
     private val transactionManager: TransactionManager,
 ) : KeywordCandidatesRepository {
 
-    init {
-        transactionManager.transaction {
-            SchemaUtils.create(KeywordCandidates)
-        }
-    }
-
     override suspend fun list(appId: Long, statuses: Set<CandidateStatus>): List<KeywordCandidate> =
         transactionManager.suspendTransaction {
             KeywordCandidates.selectAll()

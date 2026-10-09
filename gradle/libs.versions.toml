@@ -2,7 +2,9 @@
 kotlin = "2.3.0"
 kover = "0.8.3"
 maven-publish = "0.30.0"
-exposed = "1.2.0"
+exposed = "1.5.0"
+flyway = "13.7.0"
+testcontainers = "2.0.5"
 hikari = "5.1.0"
 junit = "5.11.4"
 mockk = "1.13.12"
@@ -28,6 +30,7 @@ serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref 
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 maven = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+exposed = { id = "org.jetbrains.exposed.plugin", version.ref = "exposed" }
 
 [libraries]
 kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
@@ -42,11 +45,17 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
+exposed-migration-jdbc = { module = "org.jetbrains.exposed:exposed-migration-jdbc", version.ref = "exposed" }
 hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+
+# Flyway — applies the versioned SQL migrations (Community edition, Apache-2.0)
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-mysql = { module = "org.flywaydb:flyway-mysql", version.ref = "flyway" }
 
 # Tests
 tests-mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 tests-coroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+tests-testcontainers-mysql = { module = "org.testcontainers:testcontainers-mysql", version.ref = "testcontainers" }
 
 # Ktor
 ktor-resources = { module = "io.ktor:ktor-resources", version.ref = "ktor" }
@@ -119,6 +128,11 @@ exposed = [
     "exposed-core",
     "exposed-jdbc",
     "exposed-kotlin-datetime",
+]
+
+flyway = [
+    "flyway-core",
+    "flyway-mysql",
 ]
 
 ktor-server-tests = [

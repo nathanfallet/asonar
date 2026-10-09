@@ -143,11 +143,65 @@ Clean architecture, Kotlin + Ktor, four Gradle modules — dependencies point in
 | `presentation` | Ktor HTTP layer: web routes, REST, MCP tools, serialization | `domain` |
 | `app` | Ktor entrypoint, Koin wiring, configuration | all three |
 
-Stack: Kotlin 2.3 · Ktor 3.4 · Koin 4.1 (DI) · Exposed 1.2 (ORM) · HikariCP · MySQL 8.4 / H2 ·
+Stack: Kotlin 2.3 · Ktor 3.4 · Koin 4.1 (DI) · Exposed 1.5 (ORM) · Flyway (migrations) · HikariCP · MySQL 8.4 / H2 ·
 RabbitMQ (kourier) · OpenTelemetry · kdriver (Chrome/CDP) · kotlinx serialization/datetime/coroutines · Kover.
 
 Snapshots are append-only; reads assemble the current picture from history. Writes are batched (one
 transaction per fetch) and the read paths batch-load per keyword, so it stays fast as the history grows.
+
+## Schema migrations
+
+The schema lives in versioned SQL scripts under `infrastructure/src/commonMain/resources/db/migration`,
+applied by [Flyway](https://github.com/flyway/flyway) when the app boots — a failed migration stops
+the boot. The Exposed tables only describe that schema to the code; nothing creates or alters a table
+from Kotlin any more.
+
+To change the schema:
+
+1. Edit the Exposed table.
+2. Run `./gradlew :infrastructure:generateMigrations` (needs Docker). It starts a throwaway MySQL 8.4,
+   replays the existing scripts, diffs the result against the tables and writes the missing DDL as a
+   new `V<timestamp>__….sql`.
+3. **Read and fix that file before keeping it.** The diff turns a rename into an ADD + DROP (the data
+   is lost), misses most type changes on MySQL, only sees an index's columns and uniqueness, and
+   ignores columns declared with `withDefinition()`.
+4. Keep each migration small: MySQL does not run DDL in a transaction, so a script that fails halfway
+   leaves the schema half applied, with Flyway's history marking the migration as failed.
+
+Flyway runs with three options worth knowing (see `Migrations.kt`):
+
+- `outOfOrder(true)` — migrations are named by timestamp, so a branch merged after a newer one still
+  gets its migration applied instead of Flyway refusing to start;
+- `ignoreMigrationPatterns("*:future", "*:missing")` — the previous image still boots after a rollback
+  or during a rolling update, when the database holds a migration it does not ship;
+- `failOnMissingLocations(true)` — if `db/migration` is missing from the jar, the app stops instead of
+  booting on an empty schema.
+
+**Required: merge the service files in the fat jar.** `flyway-core` and `flyway-mysql` each ship
+`META-INF/services/org.flywaydb.core.extensibility.Plugin`. Shadow (applied by the Ktor plugin) keeps
+only one of them by default; Flyway then loses its core extensions and the app crashes at boot with an
+NPE in `PluginRegister`. No test catches it, since tests do not run on the fat jar. `app/build.gradle.kts`
+must keep:
+
+```kotlin
+tasks.shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+    filesNotMatching("META-INF/services/**") {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+}
+```
+
+To check a fat jar: `unzip -p app/build/libs/app-all.jar META-INF/services/org.flywaydb.core.extensibility.Plugin`
+must list the `org.flywaydb.core…` entries as well as the `org.flywaydb.database.mysql…` ones.
+
+`MigrationsTest` replays every script on a fresh MySQL (Testcontainers, skipped without Docker) and
+fails if a table expects something no migration creates.
+
+A database created before Flyway (by the old `SchemaUtils.create`) is recorded at version 1 on its
+first boot instead of being recreated. If its `Apps` table has no `role` column yet, add it first —
+the statement is at the top of `V1__baseline.sql`.
 
 ## Observability
 

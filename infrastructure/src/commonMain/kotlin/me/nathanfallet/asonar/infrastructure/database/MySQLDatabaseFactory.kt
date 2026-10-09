@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.opentelemetry.api.OpenTelemetry
 import io.opentelemetry.instrumentation.hikaricp.v3_0.HikariTelemetry
 import io.opentelemetry.instrumentation.jdbc.datasource.JdbcTelemetry
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 
 /**
@@ -43,6 +44,8 @@ class MySQLDatabaseFactory(
     private val db: Database by lazy { Database.connect(JdbcTelemetry.create(openTelemetry).wrap(dataSource)) }
 
     override fun getDatabase(): Database = db
+
+    override fun migrate() = Migrations.migrate(Flyway.configure().dataSource(dataSource))
 
     override fun isHealthy(): Boolean = !dataSource.isClosed && dataSource.isRunning
 

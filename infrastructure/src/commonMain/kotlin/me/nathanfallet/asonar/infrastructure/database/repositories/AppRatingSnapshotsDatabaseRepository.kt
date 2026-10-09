@@ -14,7 +14,6 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.max
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.insertAndGetId
 import org.jetbrains.exposed.v1.jdbc.select
@@ -23,12 +22,6 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 class AppRatingSnapshotsDatabaseRepository(
     private val transactionManager: TransactionManager,
 ) : AppRatingSnapshotsRepository {
-
-    init {
-        transactionManager.transaction {
-            SchemaUtils.create(AppRatingSnapshots)
-        }
-    }
 
     override suspend fun create(payload: AppRatingSnapshotPayload): AppRatingSnapshot =
         transactionManager.suspendTransaction {
