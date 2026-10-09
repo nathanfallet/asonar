@@ -23,6 +23,17 @@ internal object Migrations {
             .locations(LOCATION)
             .baselineOnMigrate(true)
             .baselineVersion(BASELINE_VERSION)
+            // The Exposed plugin names migrations by timestamp (V<yyyyMMddHHmmss>__…), so two parallel
+            // branches each write their own. The one merged after a newer one must still be applied,
+            // instead of Flyway refusing to start.
+            .outOfOrder(true)
+            // After a rollback, or during a rolling update, the previous image finds in the database a
+            // migration it does not ship. It must still start. "*:future" is already Flyway's default;
+            // "*:missing" is added.
+            .ignoreMigrationPatterns("*:future", "*:missing")
+            // If `db/migration` is missing from the jar (renamed, not packaged), stop here instead of
+            // booting on an empty schema.
+            .failOnMissingLocations(true)
             .load()
             .migrate()
     }

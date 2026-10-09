@@ -168,6 +168,34 @@ To change the schema:
 4. Keep each migration small: MySQL does not run DDL in a transaction, so a script that fails halfway
    leaves the schema half applied, with Flyway's history marking the migration as failed.
 
+Flyway runs with three options worth knowing (see `Migrations.kt`):
+
+- `outOfOrder(true)` — migrations are named by timestamp, so a branch merged after a newer one still
+  gets its migration applied instead of Flyway refusing to start;
+- `ignoreMigrationPatterns("*:future", "*:missing")` — the previous image still boots after a rollback
+  or during a rolling update, when the database holds a migration it does not ship;
+- `failOnMissingLocations(true)` — if `db/migration` is missing from the jar, the app stops instead of
+  booting on an empty schema.
+
+**Required: merge the service files in the fat jar.** `flyway-core` and `flyway-mysql` each ship
+`META-INF/services/org.flywaydb.core.extensibility.Plugin`. Shadow (applied by the Ktor plugin) keeps
+only one of them by default; Flyway then loses its core extensions and the app crashes at boot with an
+NPE in `PluginRegister`. No test catches it, since tests do not run on the fat jar. `app/build.gradle.kts`
+must keep:
+
+```kotlin
+tasks.shadowJar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+    filesNotMatching("META-INF/services/**") {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+}
+```
+
+To check a fat jar: `unzip -p app/build/libs/app-all.jar META-INF/services/org.flywaydb.core.extensibility.Plugin`
+must list the `org.flywaydb.core…` entries as well as the `org.flywaydb.database.mysql…` ones.
+
 `MigrationsTest` replays every script on a fresh MySQL (Testcontainers, skipped without Docker) and
 fails if a table expects something no migration creates.
 
