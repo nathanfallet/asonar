@@ -143,7 +143,7 @@ Clean architecture, Kotlin + Ktor, four Gradle modules — dependencies point in
 | `presentation` | Ktor HTTP layer: web routes, REST, MCP tools, serialization | `domain` |
 | `app` | Ktor entrypoint, Koin wiring, configuration | all three |
 
-Stack: Kotlin 2.3 · Ktor 3.4 · Koin 4.1 (DI) · Exposed 1.5 (ORM) · Flyway (migrations) · HikariCP · MySQL 8.4 / H2 ·
+Stack: Kotlin 2.4 · Ktor 3.4 · Koin 4.1 (DI) · Exposed 1.5 (ORM) · Flyway (migrations) · HikariCP · MySQL 8.4 / H2 ·
 RabbitMQ (kourier) · OpenTelemetry · kdriver (Chrome/CDP) · kotlinx serialization/datetime/coroutines · Kover.
 
 Snapshots are append-only; reads assemble the current picture from history. Writes are batched (one
