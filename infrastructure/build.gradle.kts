@@ -7,7 +7,7 @@ plugins {
 }
 
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
     signAllPublications()
     pom {
         name.set("asonar-infrastructure")
@@ -51,47 +51,41 @@ kotlin {
                 optIn("kotlin.time.ExperimentalTime")
             }
         }
-        val commonMain by getting {
-            dependencies {
-                api(projects.api)
-                api(projects.domain)
+        commonMain.dependencies {
+            api(projects.api)
+            api(projects.domain)
 
-                api(libs.bundles.exposed)
-                api(libs.bundles.flyway)
-                api(libs.hikari)
-                api(libs.mysql)
+            api(libs.bundles.exposed)
+            api(libs.bundles.flyway)
+            api(libs.hikari)
+            api(libs.mysql)
 
-                api(libs.kourier.client.robust)
-                api(libs.bundles.opentelemetry)
-                api(libs.kdriver.core)
+            api(libs.kourier.client.robust)
+            api(libs.bundles.opentelemetry)
+            api(libs.kdriver.core)
 
-                api(libs.ktor.client.core)
-                api(libs.ktor.client.cio)
-                api(libs.ktor.client.content.negotiation)
-                api(libs.ktor.serialization.kotlinx.json)
+            api(libs.ktor.client.core)
+            api(libs.ktor.client.cio)
+            api(libs.ktor.client.content.negotiation)
+            api(libs.ktor.serialization.kotlinx.json)
 
-                api(libs.koin.ktor)
-                api(libs.ktor.server.core)
-                api(libs.ktor.server.call.id)
-                api(libs.kotlinx.coroutines.slf4j)
-            }
+            api(libs.koin.ktor)
+            api(libs.ktor.server.core)
+            api(libs.ktor.server.call.id)
+            api(libs.kotlinx.coroutines.slf4j)
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.tests.mockk)
-                implementation(libs.tests.coroutines)
-                // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
-                implementation(libs.logback.classic)
-                implementation(libs.opentelemetry.sdk.testing)
-                implementation(libs.h2)
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.tests.mockk)
+            implementation(libs.tests.coroutines)
+            // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
+            implementation(libs.logback.classic)
+            implementation(libs.opentelemetry.sdk.testing)
+            implementation(libs.h2)
         }
-        val jvmTest by getting {
-            dependencies {
-                implementation(libs.exposed.migration.jdbc)
-                implementation(libs.tests.testcontainers.mysql)
-            }
+        jvmTest.dependencies {
+            implementation(libs.exposed.migration.jdbc)
+            implementation(libs.tests.testcontainers.mysql)
         }
     }
 }

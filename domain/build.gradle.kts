@@ -6,7 +6,7 @@ plugins {
 }
 
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
     signAllPublications()
     pom {
         name.set("asonar-domain")
@@ -50,20 +50,16 @@ kotlin {
                 optIn("kotlin.time.ExperimentalTime")
             }
         }
-        val commonMain by getting {
-            dependencies {
-                api(libs.kotlinx.serialization.json)
-                api(libs.kotlinx.datetime)
-                api(libs.kotlinx.coroutines.core)
-                api(libs.koin.core)
-            }
+        commonMain.dependencies {
+            api(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.datetime)
+            api(libs.kotlinx.coroutines.core)
+            api(libs.koin.core)
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.tests.mockk)
-                implementation(libs.tests.coroutines)
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.tests.mockk)
+            implementation(libs.tests.coroutines)
         }
     }
 }

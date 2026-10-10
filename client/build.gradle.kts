@@ -6,7 +6,7 @@ plugins {
 }
 
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
     signAllPublications()
     pom {
         name.set("asonar-client")
@@ -44,20 +44,16 @@ kotlin {
 
     applyDefaultHierarchyTemplate()
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                api(projects.api)
+        commonMain.dependencies {
+            api(projects.api)
 
-                api(libs.ktor.client.core)
-                api(libs.ktor.client.resources)
-                api(libs.ktor.client.content.negotiation)
-                api(libs.ktor.serialization.kotlinx.json)
-            }
+            api(libs.ktor.client.core)
+            api(libs.ktor.client.resources)
+            api(libs.ktor.client.content.negotiation)
+            api(libs.ktor.serialization.kotlinx.json)
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

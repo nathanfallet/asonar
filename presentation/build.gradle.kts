@@ -6,7 +6,7 @@ plugins {
 }
 
 mavenPublishing {
-    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
     signAllPublications()
     pom {
         name.set("asonar-presentation")
@@ -50,34 +50,30 @@ kotlin {
                 optIn("kotlin.time.ExperimentalTime")
             }
         }
-        val commonMain by getting {
-            dependencies {
-                api(projects.api)
-                api(projects.domain)
+        commonMain.dependencies {
+            api(projects.api)
+            api(projects.domain)
 
-                api(libs.koin.ktor)
-                api(libs.ktor.server.core)
-                api(libs.ktor.server.resources)
-                api(libs.ktor.server.content.negotiation)
-                api(libs.ktor.serialization.kotlinx.json)
-                api(libs.ktor.server.status.pages)
-                api(libs.ktor.server.cors)
-                api(libs.ktor.server.call.logging)
-                api(libs.ktor.server.call.id)
-                api(libs.ktor.server.freemarker)
-                api(libs.mcp.server)
-            }
+            api(libs.koin.ktor)
+            api(libs.ktor.server.core)
+            api(libs.ktor.server.resources)
+            api(libs.ktor.server.content.negotiation)
+            api(libs.ktor.serialization.kotlinx.json)
+            api(libs.ktor.server.status.pages)
+            api(libs.ktor.server.cors)
+            api(libs.ktor.server.call.logging)
+            api(libs.ktor.server.call.id)
+            api(libs.ktor.server.freemarker)
+            api(libs.mcp.server)
         }
-        val commonTest by getting {
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.bundles.ktor.server.tests)
-                implementation(libs.tests.mockk)
-                // The real client: a route test then also proves the client builds the right request.
-                implementation(projects.client)
-                // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
-                implementation(libs.logback.classic)
-            }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.bundles.ktor.server.tests)
+            implementation(libs.tests.mockk)
+            // The real client: a route test then also proves the client builds the right request.
+            implementation(projects.client)
+            // A real MDC: without an SLF4J binding it is a no-op and the request-id tests see nothing.
+            implementation(libs.logback.classic)
         }
     }
 }
